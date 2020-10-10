@@ -26,7 +26,7 @@ import examples.gadgets.hash.MerkleTreePathGadget;
 import examples.gadgets.hash.SubsetSumHashGadget;
 
 
-public class voter extends CircuitGenerator {
+public class SimpleCircuitGenerator_register extends CircuitGenerator {
     public static int param;
     public BigInteger G;
     public BigInteger[] pp;
@@ -39,11 +39,8 @@ public class voter extends CircuitGenerator {
     public static int mode;
     //public Wire PK_id;
 
-    public voter(String circuitName, int securityparameter, BigInteger G, int mode) {
+    public SimpleCircuitGenerator_register(String circuitName) {
         super(circuitName);
-        this.param = securityparameter;
-        this.G = G;
-        this.mode = mode;
         // TODO Auto-generated constructor stub
     }
     
@@ -92,7 +89,7 @@ public class voter extends CircuitGenerator {
     
     public static void main(String[] args) throws Exception{
         BigInteger G = SimpleCircuitGenerator_vote_0923.Generator();
-		voter voter = new voter("voter", param, G, 0);
+		SimpleCircuitGenerator_register voter = new SimpleCircuitGenerator_register("register");
         voter.generateCircuit();
         voter.evalCircuit();
         voter.prepFiles();
