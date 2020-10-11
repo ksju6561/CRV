@@ -34,7 +34,11 @@ public class CircuitEvaluator {
 	}
 
 	public void setWireValue(Wire w, BigInteger v) {
-		if(v.signum() < 0 || v.compareTo(Config.FIELD_PRIME) >=0){
+		// if(v.signum() < 0 || v.compareTo(Config.FIELD_PRIME) >=0){
+		if(v.signum() < 0 ){
+
+			//System.out.println(Config.FIELD_PRIME);
+			//System.out.println(v);
 			throw new IllegalArgumentException("Only positive values that are less than the modulus are allowed for this method.");
 		}
 		valueAssignment[w.getWireId()] = v;

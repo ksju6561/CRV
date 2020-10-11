@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Author: Ahmed Kosba <akosba@cs.umd.edu>
+ *******************************************************************************/
 package examples.generators;
 
 import java.io.ByteArrayOutputStream;
@@ -23,8 +26,7 @@ import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
 import circuit.structure.WireArray;
 
-
-public class Setup {
+public class Setup{
 
 	public static BigInteger G, Grho;
 	public static BigInteger[] e_id;
@@ -34,7 +36,6 @@ public class Setup {
 	private int treeHeight;
 
     public Setup() {
-		
 
     }
     private static BigInteger GCD(BigInteger a,BigInteger b) { if (b.signum() == 0) { return a; } return GCD(b,a.mod(b)); }
@@ -84,31 +85,61 @@ public class Setup {
 		} catch (IOException e) {
 			System.out.println(e);
 		}
+		try {
+			File file = new File("./datafiles/" + "sk.dat");
+
+			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
+
+			if (file.isFile() && file.canWrite()) {
+
+				bufferedWriter.write(rho.toString());
+				// bufferedWriter.newLine();
+				// bufferedWriter.write(Grho.toString());
+				// bufferedWriter.newLine();
+				// bufferedWriter.write(rho.toString());
+				bufferedWriter.close();
+			}
+		} catch (IOException e) {
+			System.out.println(e);
+		}
+
+		try {
+			File file = new File("./datafiles/" + "e_id.dat");
+
+			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
+
+			if (file.isFile() && file.canWrite()) {
+				for(int i = 0 ; i < leafNumOfWords ; i++){
+					bufferedWriter.write(e_id[i].toString());
+					bufferedWriter.newLine();
+				}
+				// bufferedWriter.newLine();
+				// bufferedWriter.write(Grho.toString());
+				// bufferedWriter.newLine();
+				// bufferedWriter.write(rho.toString());
+				bufferedWriter.close();
+			}
+		} catch (IOException e) {
+			System.out.println(e);
+		}
 
 	}
 
 	public static void main(String[] args) throws Exception{
 		Setup setup = new Setup();
-		SimpleCircuitGenerator_vote_ajitai_HO vote = new SimpleCircuitGenerator_vote_ajitai_HO("vote", 16);
-		SimpleCircuitGenerator_tally tally = new SimpleCircuitGenerator_tally("tally", 16);
-		SimpleCircuitGenerator_register register = new SimpleCircuitGenerator_register("register");
-		vote.generateCircuit();
-		vote.evalCircuit();
-		vote.prepFiles();
-		vote.runLibsnarksetup(0);
+		Vote vote = new Vote("vote", 16);
+		Tally tally = new Tally("tally");
+		Register register = new Register("register");
+		setup.OpenElection();
+		vote.setup();
 		System.out.println("VOTE CRS");
-		tally.generateCircuit();
-		tally.evalCircuit();
-		tally.prepFiles();
-		tally.runLibsnarksetup(0);
-		System.out.println("TALLY CRS");
-		register.generateCircuit();
-		register.evalCircuit();
-		register.prepFiles();
-		register.runLibsnarksetup(0);
+		// tally.setup();
+		// System.out.println("TALLY CRS");
+		register.setup();
+		
 		System.out.println("REGISTER CRS");
 
-		setup.OpenElection();
 		// System.out.println(setup.rho);
+			
 	}
 }

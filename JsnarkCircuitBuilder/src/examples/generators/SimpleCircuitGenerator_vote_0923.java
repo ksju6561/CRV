@@ -210,7 +210,7 @@ public class SimpleCircuitGenerator_vote_0923 extends CircuitGenerator {
 				treeHeight);
 		Wire[] actualRoot = merkleTreeGadget.getOutputWires();
 
-		Wire[] sn_input = Util.concat(E_id, SK_id);
+		Wire[] sn_input = Util.concat(Util.concat(E_id, SK_id), leafWires);
 		// for (int j = 0; j < 8; j++) {
 		// sn_input[j] = SK_id[j];
 		// }

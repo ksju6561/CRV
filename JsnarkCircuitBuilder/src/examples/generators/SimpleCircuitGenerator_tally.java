@@ -50,6 +50,7 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
     public static BigInteger[] pubp;
     public static BigInteger rho;
     public static BigInteger[] vct;
+    public static BigInteger[] e_id;
 
     public Wire power(Wire input, Wire exp) {
         Wire zeroWire = createConstantWire(new BigInteger("0"));
@@ -71,9 +72,8 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
         return res;
     }
 
-    public SimpleCircuitGenerator_tally(String circuitName, int treeHeight) {
+    public SimpleCircuitGenerator_tally(String circuitName) {
         super(circuitName);
-        this.treeHeight = treeHeight;
         // this.G = G;
     }
 
@@ -86,8 +86,6 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
         M = createInputWire("msg");
 
         sk = createProverWitnessWire("rho");
-
-        
 
         if (VCT[1].equals((power(VCT[0], sk).mul((power(pp[0], M))))) == false)
             return;
@@ -121,28 +119,23 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
         }
     }
 
-    public void Setup() {
-        pubp = new BigInteger[2];
-        int i = 0;
-        try {
+    public void ReadCRS() {
+		pubp = new BigInteger[2];
+		int i = 0;
+		try {
             // 파일 객체 생성
-            File file = new File("./datafiles/" + "voting_ajitai16" + "_PP.dat");
+            File file = new File("./datafiles/" + "PP.dat");
             // 입력 스트림 생성
             FileReader filereader = new FileReader(file);
             // 입력 버퍼 생성
             BufferedReader bufReader = new BufferedReader(filereader);
             String line = "";
             while ((line = bufReader.readLine()) != null) {
-                System.out.println(line);
-                if (i == 2)
-                    rho = new BigInteger(line);
-                else
-                    pubp[i] = new BigInteger(line);
+                //System.out.println(line);
+				pubp[i] = new BigInteger(line);
                 i++;
-
             }
-            // .readLine()은 끝에 개행문자를 읽지 않는다.
-            
+            // .readLine()은 끝에 개행문자를 읽지 않는다.  
             filereader.close();
             bufReader.close();
         } catch (FileNotFoundException e) {
@@ -150,24 +143,52 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
         } catch (IOException e) {
             System.out.println(e);
         }
-        // try{
-		// 	File file = new File(circuitName + "_PP.dat");
-
-		// 	BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
-            
-        //     if(file.isFile() && file.canWrite()){
-                
-        //         bufferedWriter.write(pubp[0].toString());
-        //         bufferedWriter.newLine();
-        //         bufferedWriter.write(pubp[1].toString());
-		// 		bufferedWriter.newLine();
-		// 		bufferedWriter.write(rho.toString());
-        //         bufferedWriter.close();
-        //     }
-        // }catch (IOException e) {
-        //     System.out.println(e);
-        // }
-		System.out.println("SETUP COMPLETE");
+		
+		try {
+            // 파일 객체 생성
+            File file = new File("./datafiles/" + "sk.dat");
+            // 입력 스트림 생성
+            FileReader filereader = new FileReader(file);
+            // 입력 버퍼 생성
+            BufferedReader bufReader = new BufferedReader(filereader);
+			String line = "";
+			while ((line = bufReader.readLine()) != null) {
+				// System.out.println(line);
+				rho = new BigInteger(line);
+			}
+            // .readLine()은 끝에 개행문자를 읽지 않는다.  
+            filereader.close();
+            bufReader.close();
+        } catch (FileNotFoundException e) {
+			System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+		}
+		i=0;
+		e_id = new BigInteger[leafNumOfWords];
+		try {
+            // 파일 객체 생성
+            File file = new File("./datafiles/" + "e_id.dat");
+            // 입력 스트림 생성
+            FileReader filereader = new FileReader(file);
+            // 입력 버퍼 생성
+            BufferedReader bufReader = new BufferedReader(filereader);
+			String line = "";
+			while ((line = bufReader.readLine()) != null) {
+				// System.out.println(line);
+				e_id[i] = new BigInteger(line);
+				i++;
+			}
+            // .readLine()은 끝에 개행문자를 읽지 않는다.  
+            filereader.close();
+            bufReader.close();
+        } catch (FileNotFoundException e) {
+			System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+		// bb=?
+	
     }
 
     public BigInteger Tally(int i) {
@@ -225,14 +246,28 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
         return R;
     }
 
+    public void setup(){
+        mode = 0;
+        // SimpleCircuitGenerator_tally tally = new SimpleCircuitGenerator_tally("tally", 16);
+        this.ReadCRS();
+        this.generateCircuit();
+        this.evalCircuit();
+        this.prepFiles();
+        System.out.println("tally setup");
+        this.runLibsnarksetup(0);
+        // tally.runLibsnark();
+        // tally.runLibsnarkVerify();
+        mode = 1;
+	}
+
     public static void main(String[] args) throws Exception {
         mode = 0;
-        SimpleCircuitGenerator_tally tally = new SimpleCircuitGenerator_tally("tally", 16);
+        SimpleCircuitGenerator_tally tally = new SimpleCircuitGenerator_tally("tally");
         tally.generateCircuit();
         tally.evalCircuit();
         tally.prepFiles();
         tally.runLibsnarksetup(0);
-        tally.Setup();
+        tally.ReadCRS();
         // tally.runLibsnark();
         // tally.runLibsnarkVerify();
         mode = 1;
@@ -247,7 +282,7 @@ public class SimpleCircuitGenerator_tally extends CircuitGenerator {
             System.out.println("runLibsnarkverify");
             tally.runLibsnarkVerify(num_of_voter);
         
-
+        
     }
 
 }

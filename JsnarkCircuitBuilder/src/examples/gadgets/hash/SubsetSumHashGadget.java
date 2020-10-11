@@ -13,8 +13,8 @@ import circuit.structure.Wire;
 
 public class SubsetSumHashGadget extends Gadget {
 
-	public static final int DIMENSION = 3; // set to 4 for higher security
-	public static final int INPUT_LENGTH = 2 * DIMENSION * Config.LOG2_FIELD_PRIME; // length in bits
+	public static final int DIMENSION = 3; // set to 4 for higher security 10
+	public static final int INPUT_LENGTH = 2 * DIMENSION * Config.LOG2_FIELD_PRIME; // length in bits 254
 	private static final BigInteger[][] COEFFS;
 
 	private Wire[] inputWires;
@@ -40,6 +40,9 @@ public class SubsetSumHashGadget extends Gadget {
 	public SubsetSumHashGadget(Wire[] ins, boolean binaryOutput, String... desc) {
 
 		super(desc);
+		// System.out.println("ins.length : " + ins.length);
+		// System.out.println("INPUT_LENGTH : " + INPUT_LENGTH);
+		// System.out.println(ins.length * 1.0 / INPUT_LENGTH+"\n");
 		int numBlocks = (int) Math.ceil(ins.length * 1.0 / INPUT_LENGTH);
 
 		if (numBlocks > 1) {

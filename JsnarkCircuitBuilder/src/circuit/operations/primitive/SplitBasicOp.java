@@ -25,7 +25,7 @@ public class SplitBasicOp extends BasicOp {
 			System.err
 					.println("Error in Split --- The number of bits does not fit -- Input: "
 							+ assignment[inputs[0].getWireId()].toString(16) + "\n\t" + this);
-
+	
 			throw new RuntimeException("Error During Evaluation -- " + this);
 		}
 	}

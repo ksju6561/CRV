@@ -47,7 +47,9 @@ public class MerkleTreePathGadget extends Gadget {
 
 		// Apply CRH to leaf data
 		Wire[] leafBits = new WireArray(leafWires).getBits(leafWordBitWidth).asArray();
-		SubsetSumHashGadget subsetSumGadget = new SubsetSumHashGadget(leafBits, false);
+		// System.out.println("leafbits : "+leafBits.length);
+
+		SubsetSumHashGadget subsetSumGadget = new SubsetSumHashGadget(leafWires, false);
 		Wire[] currentHash = subsetSumGadget.getOutputWires();
 
 		// Apply CRH across tree path guided by the direction bits

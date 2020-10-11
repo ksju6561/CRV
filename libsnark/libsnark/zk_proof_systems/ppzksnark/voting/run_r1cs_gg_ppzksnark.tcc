@@ -81,8 +81,8 @@ void run_r1cs_gg_ppzksnark_setup(const r1cs_example<libff::Fr<ppT> > &example,
     }
     libff::print_header("GG-ppzkSNARK CRS Out file");
     string name1, name2;
-    name1 = "./datafiles" + name + "_CRS_pk.dat";
-    name2 = "./datafiles" + name + "_CRS_vk.dat";
+    name1 = "./datafiles/" + name + "_CRS_pk.dat";
+    name2 = "./datafiles/" + name + "_CRS_vk.dat";
     //name1 = strcat(name1, "_CRS_pk.dat");
     std::ofstream crs_pk_outfile(name1);
     
@@ -105,8 +105,8 @@ void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
     libff::print_header("GG-ppzkSNARK CRS In file");
     r1cs_gg_ppzksnark_keypair<ppT> keypair;
     string name1, name2, name3;
-    name1 = "./datafiles" + name + "_CRS_pk.dat";
-    name2 = "./datafiles" + name + "_CRS_vk.dat";
+    name1 = "./datafiles/" + name + "_CRS_pk.dat";
+    name2 = "./datafiles/" + name + "_CRS_vk.dat";
     
     std::ifstream crs_pk_infile(name1);
     
@@ -134,7 +134,7 @@ void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
     libff::print_header("proof out");
     // name3 = name + "_Proof.dat";
     // name3 = name + "_proof_" + n + ".dat";
-    name3 = "./datafiles" + name + "_Proof_" + n + ".dat";
+    name3 = "./datafiles/" + name + "_Proof_" + n + ".dat";
     std::ofstream proof_outfile(name3.c_str());
    
     proof_outfile << proof;
@@ -150,11 +150,11 @@ bool run_r1cs_gg_ppzksnark_verify(const r1cs_example<libff::Fr<ppT> > &example,
     libff::print_header("GG-ppzkSNARK CRS In file");
     r1cs_gg_ppzksnark_keypair<ppT> keypair;
     string name1, name2, name3;
-    name1 = "./datafiles" + name + "_CRS_pk.dat";
-    name2 = "./datafiles" + name + "_CRS_vk.dat";    
+    name1 = "./datafiles/" + name + "_CRS_pk.dat";
+    name2 = "./datafiles/" + name + "_CRS_vk.dat";    
     // name3 = name + "_Proof.dat";
     // name3 = name + "_proof_" + n + ".dat";
-    name3 = "./datafiles" +  name + "_Proof_" + n + ".dat";
+    name3 = "./datafiles/" +  name + "_Proof_" + n + ".dat";
     std::ifstream crs_pk_infile(name1);
     //strcat(name2, "_CRS_vk.dat");
     std::ifstream crs_vk_infile(name2);

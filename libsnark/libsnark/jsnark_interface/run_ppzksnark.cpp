@@ -75,12 +75,15 @@ int main(int argc, char **argv) {
 	const bool test_serialization = false;
 	bool successBit = false;
 	//string name = argv[2];
-	char name1[1194];
-	strncpy(name1, argv[2], strlen(argv[2])-3);
-	name1[strlen(name1)] = '\0';
+	char *name1;
+	// strncpy(name1, argv[2], strlen(argv[2])-3);
+	name1 = strtok(argv[2], ".");
 	cout << argv[3] << endl;
-	cout << "voterno : " << argv[4] << endl;
+	name1[strlen(name1)] = '\0';
+	// cout << name1 << endl;
+	// cout << "voterno : " << argv[4] << endl;
 	string name = name1;
+	// cout << name << endl;
 	if(strcmp(argv[3], "setup") == 0)
 	{
 		libsnark::run_r1cs_gg_ppzksnark_setup<libsnark::default_r1cs_gg_ppzksnark_pp>(example, test_serialization, name);
@@ -123,6 +126,40 @@ int main(int argc, char **argv) {
 
 	
 	return 0;
+	}
+	else if(strcmp(argv[3], "all") == 0)
+	{
+		libsnark::run_r1cs_gg_ppzksnark_setup<libsnark::default_r1cs_gg_ppzksnark_pp>(example, test_serialization, name);
+		
+		if(argc == 5) {
+			
+			libsnark::run_r1cs_gg_ppzksnark<libff::default_ec_pp>(example, test_serialization, name, argv[4]);
+
+		} else {
+			// The following code makes use of the observation that 
+			// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
+			// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
+			libsnark::run_r1cs_gg_ppzksnark<libsnark::default_r1cs_gg_ppzksnark_pp>(
+				example, test_serialization, name, argv[4]);
+		}
+
+		if(argc == 5) {
+		
+		successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libff::default_ec_pp>(example, test_serialization, name, argv[4]);
+
+		} else {
+			// The following code makes use of the observation that 
+			// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
+			// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
+			successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libsnark::default_r1cs_gg_ppzksnark_pp>(
+				example, test_serialization, name, argv[4]);
+		}
+
+		if(!successBit){
+			cout << "Problem occurred while running the ppzksnark algorithms .. " << endl;
+			return 0;
+		}
+		
 	}
 }
 
