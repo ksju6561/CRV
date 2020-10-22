@@ -113,7 +113,7 @@ public class Vote extends CircuitGenerator {
 		
 		Wire[] skBits = new WireArray(SK_id).getBits(leafWordBitWidth).asArray();
 		// System.out.println("ww : " + skBits.length);
-        subsetSumHashGadget = new SubsetSumHashGadget(skBits, true);
+        subsetSumHashGadget = new SubsetSumHashGadget(skBits, false);
 		Wire[] PK_id = subsetSumHashGadget.getOutputWires();
 		// makeOutputArray(PK_id, "PK_id");
 
@@ -131,9 +131,11 @@ public class Vote extends CircuitGenerator {
 		Wire[] ek = Util.concat(EK_id[0],EK_id[1]);
 		// 32 * 8 + 32 * 8 +  32 * 3
 		Wire[] ekbits = new WireArray(ek).getBits(leafWordBitWidth).asArray();
-		Wire[] ekpk = Util.concat(ekbits, PK_id);
+		subsetSumHashGadget = new SubsetSumHashGadget(ekbits, false);
+		Wire[] hashek = subsetSumHashGadget.getOutputWires();
+		Wire[] ekpk = Util.concat(hashek, PK_id);
 		// System.out.println("WW:"+ekpkBits.length);
-		merkleTreeGadget = new MerkleTreePathGadget(directionSelector, ekpk, intermediateHasheWires, 1, treeHeight);
+		merkleTreeGadget = new MerkleTreePathGadget(directionSelector, ekpk, intermediateHasheWires, 254, treeHeight);
 		root = merkleTreeGadget.getOutputWires();
 		makeOutputArray(root, "Root");
 
