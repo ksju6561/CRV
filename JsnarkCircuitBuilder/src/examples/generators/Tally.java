@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Author: Ahmed Kosba <akosba@cs.umd.edu>
+ * Author: Seongho Park <shparkk95@kookmin.ac.kr>
  *******************************************************************************/
 package examples.generators;
 
@@ -24,8 +24,6 @@ import circuit.structure.CircuitGenerator;
 import circuit.structure.ConstantWire;
 import circuit.structure.Wire;
 import circuit.structure.WireArray;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import examples.gadgets.hash.MerkleTreePathGadget;
 import examples.gadgets.hash.SHA256Gadget;
 import examples.gadgets.hash.SubsetSumHashGadget;
