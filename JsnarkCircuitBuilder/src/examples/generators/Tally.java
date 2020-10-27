@@ -32,7 +32,7 @@ public class Tally extends CircuitGenerator {
     /* INPUT */
     private Wire[][] pp;
     private Wire[][] VCT;
-    private Wire candidate;
+    private Wire[] candidate; //MAX = 2^6 * 2 ^ 16
     /* WITNESS */
     private Wire[] SK;
 
@@ -71,11 +71,12 @@ public class Tally extends CircuitGenerator {
             pp[i] = createInputWireArray(leafNumofWords, "pp" + Integer.toString(i));
             VCT[i] = createInputWireArray(leafNumofWords, "VCT" + Integer.toString(i));
         }
-        candidate = createInputWire("candidate");
+        candidate = createInputWireArray(2, "candidate");
         SK = createProverWitnessWireArray(leafNumofWords, "sk");
-
+        //Wire[] msum = Util.concat(candidate[0], candidate[1]);
         for(int i = 0 ; i < leafNumofWords ; i++){
-            if(VCT[1][i].isEqualTo((power(VCT[0][i], SK[i]).mul((power(pp[0][i], candidate))))) == oneWire ){
+            for(int j = 0 ; j < 2 ; j++)
+            if(VCT[1][i].isEqualTo((power(VCT[0][i], SK[i]).mul((power(pp[0][i], candidate[j]))))) == oneWire ){
                 System.out.println("err 1, "+i);
                 return ;
             }
@@ -93,8 +94,9 @@ public class Tally extends CircuitGenerator {
                 circuitEvaluator.setWireValue(pp[i][j], Integer.MAX_VALUE);
                 circuitEvaluator.setWireValue(VCT[i][j], Integer.MAX_VALUE);
             }
+            circuitEvaluator.setWireValue(candidate[i], Integer.MAX_VALUE);
         }
-        circuitEvaluator.setWireValue(candidate, Integer.MAX_VALUE);
+
         for(int i = 0 ; i < leafNumofWords ; i++){
             circuitEvaluator.setWireValue(SK[i], Integer.MAX_VALUE);
         }
