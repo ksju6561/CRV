@@ -47,7 +47,6 @@ public class Vote extends CircuitGenerator {
 
 	private int num_of_elector = 64; // 2^6
 	private int leafNumOfWords = 8;
-	private int list_size = 1024;
 	private int leafWordBitWidth = 32;
 	private int treeHeight;
 	
@@ -82,7 +81,7 @@ public class Vote extends CircuitGenerator {
 	protected void buildCircuit() {	
 		
 		EK_id = new Wire[2][];
-
+		
 		E_id = createInputWireArray(leafNumOfWords, "E_id");
 		for(int i = 0 ; i < 2 ; i++){
 			EK_id[i] = createProverWitnessWireArray(leafNumOfWords, "ek_id" + Integer.toString(i));
@@ -102,7 +101,7 @@ public class Vote extends CircuitGenerator {
 		// Wire[] rhobit = expwire(Rho);
 		Wire[] rbit = expwire(randomizedEnc);
 		Wire[] msgbit = expwire(candidate);
-		
+		// makeOutputArray(rbit);
 		// ECGroupGeneratorGadget exchange = new ECGroupGeneratorGadget(G, rhobit);
 		// U = exchange.getOutputPublicValue();
 		
@@ -140,9 +139,10 @@ public class Vote extends CircuitGenerator {
 		Wire S = new WireArray(EK_id[0]).getBits(32).packAsBits(256, "S");
 		Wire T = new WireArray(EK_id[1]).getBits(32).packAsBits(256, "T");
 		
-		S = createConstantWire(new BigInteger("8252578783913909531884765397785803733246236629821369091076513527284845891757"), "S");
+		S = createConstantWire(new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"), "S");
 		T = createConstantWire(new BigInteger("8252578783913909531884765397785803733246236629821369091076513527284845891757"), "T");
-		ECGroupOperationGadget enc = new ECGroupOperationGadget(G, rbit, S, msgbit);
+		
+		ECGroupOperationGadget enc = new ECGroupOperationGadget(G, rbit, S, msgbit); //하나에 120ms 정도
 		Wire V = enc.getOutputPublicValue();
 		enc = new ECGroupOperationGadget(U, rbit, T, msgbit);
 		Wire W = enc.getOutputPublicValue();
@@ -154,7 +154,7 @@ public class Vote extends CircuitGenerator {
 	@Override
 	public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
 		circuitEvaluator.setWireValue(G, new BigInteger("16377448892084713529161739182205318095580119111576802375181616547062197291263"));
-		circuitEvaluator.setWireValue(U, new BigInteger("4810973129926219629753993601758293538333634865847711720450943669829716657070"));
+		circuitEvaluator.setWireValue(U, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
 		// circuitEvaluator.setWireValue(Rho, Util.nextRandomBigInteger(250));
 		for(int i = 0 ; i < 2 ; i++){
 			for(int j = 0 ; j < leafNumOfWords ; j++){
@@ -175,13 +175,6 @@ public class Vote extends CircuitGenerator {
 		
 	}
 
-	public BigInteger Generator() {
-		BigInteger g = Util.nextRandomBigInteger(254);
-
-		while (g.gcd(Config.FIELD_PRIME).compareTo(BigInteger.ONE) == 1)
-			g = Util.nextRandomBigInteger(254);
-		return g;
-	}
 	public static void main(String[] args) throws Exception {
 
 		Vote generator = new Vote("Vote", 16);

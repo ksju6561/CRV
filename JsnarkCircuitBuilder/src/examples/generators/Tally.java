@@ -4,18 +4,6 @@
 package examples.generators;
 
 import java.math.BigInteger;
-import java.util.Random;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 
 import util.Util;
 import circuit.config.Config;
@@ -27,83 +15,97 @@ import circuit.structure.WireArray;
 import examples.gadgets.hash.MerkleTreePathGadget;
 import examples.gadgets.hash.SHA256Gadget;
 import examples.gadgets.hash.SubsetSumHashGadget;
+import examples.gadgets.diffieHellmanKeyExchange.ECGroupGeneratorGadget;
+import examples.gadgets.diffieHellmanKeyExchange.ECGroupOperationGadget;
+
 
 public class Tally extends CircuitGenerator {
     /* INPUT */
-    private Wire[][] pp;
-    private Wire[][] VCT;
-    private Wire[] candidate; //MAX = 2^6 * 2 ^ 16
+    private Wire G;
+    private Wire U;
+    private Wire V;
+    private Wire W;
+    private Wire[] msgsum; //MAX = 2^6 * 2 ^ 16
     /* WITNESS */
     private Wire[] SK;
 
     private int leafNumofWords = 8;
+    private int leafWordBitWidth = 32;
+    private int numofvoter = 64;
 
-    public Tally(String circuitName) {
+    private int treeHeight;
+    public static final int EXPONENT_BITWIDTH = 253; // in bits
+
+
+    public Tally(String circuitName, int treeHeight) {
         super(circuitName);
+        this.treeHeight = treeHeight;
     }
 
-    public Wire power(Wire input, Wire exp) {
-		Wire zeroWire = createConstantWire(new BigInteger("0"));
-		Wire oneWire = createConstantWire(new BigInteger("1"));
-		Wire res = createConstantWire(new BigInteger("1"));
-		int index = 0;
-
-		Wire[] getBitExp = exp.getBitWires(256).asArray();
-		for (int i = 0; i < 256; i++) {
-			Wire tmp = input.sub(1);
-			tmp = tmp.mul(getBitExp[i]);
-			tmp = tmp.add(1);
-
-			res = res.mul(tmp);
-
-			exp = exp.shiftRight(1, 256);
-			input = input.mul(input);
+    public Wire[] expwire(Wire input){
+		Wire zerobitWire = createConstantWire(new BigInteger("0")).getBitWires(1).get(0);
+		Wire onebitWire = oneWire.getBitWires(1).get(0);
+		Wire[] temp = input.getBitWires(EXPONENT_BITWIDTH-3).asArray();
+		Wire[] output = new Wire[EXPONENT_BITWIDTH];
+		output[0] = zeroWire;
+		output[1] = zeroWire;
+		output[2] = zeroWire;
+		for(int i = 3 ; i < EXPONENT_BITWIDTH  ; i++)
+			output[i] = temp[i-3];
+		output[EXPONENT_BITWIDTH - 1] = oneWire;
+		for(int i = 0 ; i < output.length ; i++){
+			addBinaryAssertion(output[i], Integer.toString(i));
 		}
-		return res;
-    }
-    
+		return output;
+	}
+
     @Override
     protected void buildCircuit(){
         Wire oneWire = createConstantWire(new BigInteger("1"));
-        pp = new Wire[2][];
-        VCT = new Wire[2][];
-        for(int i = 0 ; i < 2 ; i++){
-            pp[i] = createInputWireArray(leafNumofWords, "pp" + Integer.toString(i));
-            VCT[i] = createInputWireArray(leafNumofWords, "VCT" + Integer.toString(i));
-        }
-        candidate = createInputWireArray(2, "candidate");
+        G = createInputWire("G");
+        U = createInputWire("U");
+        V = createInputWire("V");
+        W = createInputWire("W");
+
+        msgsum = createInputWireArray(numofvoter, "candidate");
         SK = createProverWitnessWireArray(leafNumofWords, "sk");
-        //Wire[] msum = Util.concat(candidate[0], candidate[1]);
-        for(int i = 0 ; i < leafNumofWords ; i++){
-            for(int j = 0 ; j < 2 ; j++)
-            if(VCT[1][i].isEqualTo((power(VCT[0][i], SK[i]).mul((power(pp[0][i], candidate[j]))))) == oneWire ){
-                System.out.println("err 1, "+i);
-                return ;
-            }
-            if(pp[1][i].isEqualTo(power(pp[0][i], SK[i])) == oneWire ){
-                System.out.println("err 2, "+i);
-                return ;
-            }
+        Wire rho = new WireArray(SK).getBits(leafWordBitWidth).packAsBits(256, "rho");
+        Wire[] skbits = expwire(rho);
+        for(int i = 0 ; i < numofvoter ; i++){
+            Wire msg = createConstantWire(new BigInteger(Integer.toString(i)));
+            
+            Wire[] msgbits = expwire(msg);
+            
+            ECGroupOperationGadget dec = new ECGroupOperationGadget(V, skbits, G, msgbits);
+            Wire m = dec.getOutputPublicValue();
+            ECGroupGeneratorGadget dec2 = new ECGroupGeneratorGadget(G, skbits);
+            Wire n = dec2.getOutputPublicValue();
+
+            if(m.isEqualTo(W) == oneWire && n.isEqualTo(U) == oneWire)
+                msgsum[i].add(1);
         }
+    
     }
 
     @Override
     public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
-        for(int i = 0 ; i < 2 ; i++){
-			for(int j = 0 ; j < leafNumofWords ; j++){
-                circuitEvaluator.setWireValue(pp[i][j], Integer.MAX_VALUE);
-                circuitEvaluator.setWireValue(VCT[i][j], Integer.MAX_VALUE);
-            }
-            circuitEvaluator.setWireValue(candidate[i], Integer.MAX_VALUE);
+        circuitEvaluator.setWireValue(G, new BigInteger("16377448892084713529161739182205318095580119111576802375181616547062197291263"));
+        circuitEvaluator.setWireValue(U, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
+        circuitEvaluator.setWireValue(V, new BigInteger("16377448892084713529161739182205318095580119111576802375181616547062197291263"));
+        circuitEvaluator.setWireValue(W, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
+
+        for(int i = 0 ; i < numofvoter ; i++){
+            circuitEvaluator.setWireValue(msgsum[i], 0);
         }
 
         for(int i = 0 ; i < leafNumofWords ; i++){
             circuitEvaluator.setWireValue(SK[i], Integer.MAX_VALUE);
         }
+             
     }
 
     public static void main(String[] args) throws Exception{
-        Tally tally = new Tally("tally");
+        Tally tally = new Tally("tally", 16);
         tally.generateCircuit();
         tally.evalCircuit();
         tally.prepFiles();

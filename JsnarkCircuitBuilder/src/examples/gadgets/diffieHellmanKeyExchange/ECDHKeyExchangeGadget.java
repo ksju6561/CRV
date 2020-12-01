@@ -159,9 +159,10 @@ public class ECDHKeyExchangeGadget extends Gadget {
 		 */
 
 		baseTable = preprocess(basePoint);
-		hTable = preprocess(hPoint);
+		// hTable = preprocess(hPoint);
 		outputPublicValue = mul(basePoint, secretBits, baseTable).x;
-		sharedSecret = mul(hPoint, secretBits, hTable).x;
+		// sharedSecret = mul(hPoint, secretBits, hTable).x;
+		sharedSecret = outputPublicValue;
 	}
 
 	private void checkSecretBits() {
