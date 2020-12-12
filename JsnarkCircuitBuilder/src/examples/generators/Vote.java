@@ -45,7 +45,7 @@ public class Vote extends CircuitGenerator {
 	private Wire directionSelector;
 	private Wire[] intermediateHasheWires;
 
-	private int num_of_elector = 64; // 2^6
+	private BigInteger numofelector; // 2^6
 	private int leafNumOfWords = 8;
 	private int leafWordBitWidth = 32;
 	private int treeHeight;
@@ -55,9 +55,10 @@ public class Vote extends CircuitGenerator {
 
 	public static final int EXPONENT_BITWIDTH = 253; // in bits
 
-	public Vote(String circuitName, int treeHeight) {
+	public Vote(String circuitName, int treeHeight, BigInteger numofelector) {
 		super(circuitName);
 		this.treeHeight = treeHeight;
+		this.numofelector = numofelector;
 	}
 
 	public Wire[] expwire(Wire input){
@@ -101,7 +102,7 @@ public class Vote extends CircuitGenerator {
 		// Wire[] rhobit = expwire(Rho);
 		Wire[] rbit = expwire(randomizedEnc);
 		Wire[] msgbit = expwire(candidate);
-		// makeOutputArray(rbit);
+		// makeOu tputArray(rbit);
 		// ECGroupGeneratorGadget exchange = new ECGroupGeneratorGadget(G, rhobit);
 		// U = exchange.getOutputPublicValue();
 		
@@ -138,14 +139,17 @@ public class Vote extends CircuitGenerator {
 		//  2^8
 		Wire S = new WireArray(EK_id[0]).getBits(32).packAsBits(256, "S");
 		Wire T = new WireArray(EK_id[1]).getBits(32).packAsBits(256, "T");
-		
-		S = createConstantWire(new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"), "S");
-		T = createConstantWire(new BigInteger("8252578783913909531884765397785803733246236629821369091076513527284845891757"), "T");
+		long beforeTime = System.currentTimeMillis();
+		S = createConstantWire(new BigInteger("20972856563602803936618876197870162225522597137883271266424577349524402481974"), "S");
+		T = createConstantWire(new BigInteger("14570037276928935487484804278848549726735737539422483972830419685206818024981"), "T");
 		
 		ECGroupOperationGadget enc = new ECGroupOperationGadget(G, rbit, S, msgbit); //하나에 120ms 정도
 		Wire V = enc.getOutputPublicValue();
 		enc = new ECGroupOperationGadget(U, rbit, T, msgbit);
 		Wire W = enc.getOutputPublicValue();
+		long afterTime = System.currentTimeMillis(); 
+		long secDiffTime = (afterTime - beforeTime);
+		System.out.println("시간차이(m) : "+secDiffTime);
 		makeOutput(V, "V");
 		makeOutput(W, "W");
 
@@ -153,8 +157,8 @@ public class Vote extends CircuitGenerator {
 
 	@Override
 	public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
-		circuitEvaluator.setWireValue(G, new BigInteger("16377448892084713529161739182205318095580119111576802375181616547062197291263"));
-		circuitEvaluator.setWireValue(U, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
+		circuitEvaluator.setWireValue(G, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
+		circuitEvaluator.setWireValue(U, new BigInteger("9091054082811332808408882460551019864591326367199559281300795799522407870087"));
 		// circuitEvaluator.setWireValue(Rho, Util.nextRandomBigInteger(250));
 		for(int i = 0 ; i < 2 ; i++){
 			for(int j = 0 ; j < leafNumOfWords ; j++){
@@ -167,7 +171,9 @@ public class Vote extends CircuitGenerator {
 		}
 
 		circuitEvaluator.setWireValue(directionSelector, Util.nextRandomBigInteger(treeHeight));
-		circuitEvaluator.setWireValue(candidate, Integer.MAX_VALUE);
+		BigInteger size = Util.nextRandomBigInteger(numofelector);
+		System.out.println(size);
+		circuitEvaluator.setWireValue(candidate, size);
 		circuitEvaluator.setWireValue(randomizedEnc, 1);
 		for (int i = 0; i < hashDigestDimension * treeHeight; i++) { 
 			circuitEvaluator.setWireValue(intermediateHasheWires[i], Integer.MAX_VALUE);
@@ -177,7 +183,7 @@ public class Vote extends CircuitGenerator {
 
 	public static void main(String[] args) throws Exception {
 
-		Vote generator = new Vote("Vote", 16);
+		Vote generator = new Vote("Vote", 32, BigInteger.valueOf(64));
 		generator.generateCircuit();
 		generator.evalCircuit();
 		generator.prepFiles();
