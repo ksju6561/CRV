@@ -15,6 +15,7 @@ import circuit.eval.Instruction;
 import circuit.operations.Gadget;
 import circuit.structure.ConstantWire;
 import circuit.structure.Wire;
+import circuit.structure.WireArray;
 import examples.gadgets.math.FieldDivisionGadget;
 
 /**
@@ -47,7 +48,7 @@ public class ECGroupOperationGadget extends Gadget {
     // Config.FIELD_PRIME =
     // 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
-    public final static int SECRET_BITWIDTH = 253; // number of bits in the
+    public final static int SECRET_BITWIDTH = 254; // number of bits in the
                                                    // exponent. Note that the
                                                    // most significant bit
                                                    // should
@@ -64,9 +65,6 @@ public class ECGroupOperationGadget extends Gadget {
     public final static BigInteger CURVE_ORDER = new BigInteger(
             "21888242871839275222246405745257275088597270486034011716802747351550446453784");
 
-    // As in curve25519, CURVE_ORDER = SUBGROUP_ORDER * 2^3
-    public final static BigInteger SUBGROUP_ORDER = new BigInteger(
-            "2736030358979909402780800718157159386074658810754251464600343418943805806723");
 
     // The Affine point representation is used as it saves one gate per bit
     private AffinePoint basePoint; // The Base point both parties agree to
@@ -82,9 +80,6 @@ public class ECGroupOperationGadget extends Gadget {
                                     // material to be sent to the other party
                                     // outputPublicValue = ((this party's
                                     // secret)*Base).x
-
-    private Wire sharedSecret; // the x-coordinate of the derived key ((this
-                               // party's secret)*H).x
 
     private AffinePoint[] baseTable;
     private AffinePoint[] hTable;
@@ -104,18 +99,23 @@ public class ECGroupOperationGadget extends Gadget {
      * 
      * 
      */
+    public ECGroupOperationGadget(Wire X, Wire Y, String... desc){
+        this.basePoint = new AffinePoint(X);
+        this.hPoint = new AffinePoint(Y);
+
+        computeYCoordinates();
+        buildCircuit();
+    }
 
     public ECGroupOperationGadget(Wire baseX, Wire[] expX, Wire baseY, Wire[] expY, String... desc) {
         super(desc);
         ECGroupGeneratorGadget gadget1 = new ECGroupGeneratorGadget(baseX, expX, desc);
         ECGroupGeneratorGadget gadget2 = new ECGroupGeneratorGadget(baseY, expY, desc);
-        this.secretBits = expX;
-        checkSecretBits();
+        
         this.basePoint = new AffinePoint(gadget1.getOutputPublicValue());
         this.hPoint = new AffinePoint(gadget2.getOutputPublicValue());
-        computeYCoordinates(1);
-        baseTable = gadget1.getprecomputedTable();
-        hTable = gadget2.getprecomputedTable();
+        computeYCoordinates();
+        
         buildCircuit();
     }
 
@@ -128,10 +128,23 @@ public class ECGroupOperationGadget extends Gadget {
          * equations save 1 multiplication gate per bit. (we consider multiplications by
          * constants cheaper in our setting, so they are not counted)
          */
+        //Wire samebasepoint = basePoint.x.isEqualTo(hPoint.x);
 
-        Wire output = addAffinePoints(basePoint, hPoint).x;
+        AffinePoint output = addAffinePoints(basePoint, hPoint);
+        
+        outputPublicValue = output.x;
 
-        outputPublicValue = output;
+        // Wire a = basePoint.x;
+        // Wire b = hPoint.x;
+        // outputPublicValue = a.mul(b);
+    
+        
+        // Wire[] a = (basePoint.x).getBitWires(254).asArray();
+        // Wire[] b = (hPoint.x).getBitWires(254).asArray();
+        // Wire[] out = new WireArray(a).xorWireArray(new WireArray(b), SECRET_BITWIDTH).asArray();
+        
+        // outputPublicValue = new WireArray(out).packAsBits(SECRET_BITWIDTH);
+        
     }
 
     private void checkSecretBits() {
@@ -143,20 +156,10 @@ public class ECGroupOperationGadget extends Gadget {
         if (secretBits.length != SECRET_BITWIDTH) {
             throw new IllegalArgumentException();
         }
-        generator.addZeroAssertion(secretBits[0], "Asserting secret bit conditions0");
-        generator.addZeroAssertion(secretBits[1], "Asserting secret bit conditions1");
-        generator.addZeroAssertion(secretBits[2], "Asserting secret bit conditions2");
-        generator.addOneAssertion(secretBits[SECRET_BITWIDTH - 1], "Asserting secret bit conditions3");
-
-        for (int i = 3; i < SECRET_BITWIDTH - 1; i++) {
-            // verifying all other bit wires are binary (as this is typically a
-            // secret
-            // witness by the prover)
-            generator.addBinaryAssertion(secretBits[i]);
-        }
+       
     }
 
-    private void computeYCoordinates(int mode) {
+    private void computeYCoordinates() {
 
         // Easy to handle if baseX is constant, otherwise, let the prover input
         // a witness and verify some properties
@@ -176,20 +179,19 @@ public class ECGroupOperationGadget extends Gadget {
             assertValidPointOnEC(basePoint.x, basePoint.y);
         }
 
-        if (mode == 1) {
-            if (hPoint.x instanceof ConstantWire) {
-                BigInteger x = ((ConstantWire) hPoint.x).getConstant();
-                hPoint.y = generator.createConstantWire(computeYCoordinate(x));
-            } else {
-                hPoint.y = generator.createProverWitnessWire();
-                generator.specifyProverWitnessComputation(new Instruction() {
-                    public void evaluate(CircuitEvaluator evaluator) {
-                        BigInteger x = evaluator.getWireValue(hPoint.x);
-                        evaluator.setWireValue(hPoint.y, computeYCoordinate(x));
-                    }
-                });
-                assertValidPointOnEC(hPoint.x, hPoint.y);
-            }
+        if (hPoint.x instanceof ConstantWire) {
+            BigInteger x = ((ConstantWire) hPoint.x).getConstant();
+            hPoint.y = generator.createConstantWire(computeYCoordinate(x));
+        } else {
+            hPoint.y = generator.createProverWitnessWire();
+            generator.specifyProverWitnessComputation(new Instruction() {
+                public void evaluate(CircuitEvaluator evaluator) {
+                    BigInteger x = evaluator.getWireValue(hPoint.x);
+                    evaluator.setWireValue(hPoint.y, computeYCoordinate(x));
+                }
+            });
+            assertValidPointOnEC(hPoint.x, hPoint.y);
+
         }
     }
 
@@ -200,41 +202,6 @@ public class ECGroupOperationGadget extends Gadget {
         Wire xSqr = x.mul(x);
         Wire xCube = xSqr.mul(x);
         generator.addEqualityAssertion(ySqr, xCube.add(xSqr.mul(COEFF_A)).add(x));
-    }
-
-    private AffinePoint[] preprocess(AffinePoint p) {
-        AffinePoint[] precomputedTable = new AffinePoint[secretBits.length];
-        precomputedTable[0] = p;
-        for (int j = 1; j < secretBits.length; j += 1) {
-            precomputedTable[j] = doubleAffinePoint(precomputedTable[j - 1]);
-        }
-        return precomputedTable;
-    }
-
-    /**
-     * Performs scalar multiplication (secretBits must comply with the conditions
-     * above)
-     */
-    private AffinePoint mul(AffinePoint p, Wire[] secretBits, AffinePoint[] precomputedTable) {
-
-        AffinePoint result = new AffinePoint(precomputedTable[secretBits.length - 1]);
-        for (int j = secretBits.length - 2; j >= 0; j--) {
-            AffinePoint tmp = addAffinePoints(result, precomputedTable[j]);
-            Wire isOne = secretBits[j];
-            result.x = result.x.add(isOne.mul(tmp.x.sub(result.x)));
-            result.y = result.y.add(isOne.mul(tmp.y.sub(result.y)));
-        }
-        return result;
-    }
-
-    private AffinePoint doubleAffinePoint(AffinePoint p) {
-        Wire x_2 = p.x.mul(p.x);
-        Wire l1 = new FieldDivisionGadget(x_2.mul(3).add(p.x.mul(COEFF_A).mul(2)).add(1), p.y.mul(2))
-                .getOutputWires()[0];
-        Wire l2 = l1.mul(l1);
-        Wire newX = l2.sub(COEFF_A).sub(p.x).sub(p.x);
-        Wire newY = p.x.mul(3).add(COEFF_A).sub(l2).mul(l1).sub(p.y);
-        return new AffinePoint(newX, newY);
     }
 
     private AffinePoint addAffinePoints(AffinePoint p1, AffinePoint p2) {
@@ -250,7 +217,7 @@ public class ECGroupOperationGadget extends Gadget {
 
     @Override
     public Wire[] getOutputWires() {
-        return new Wire[] { outputPublicValue, sharedSecret };
+        return new Wire[] { outputPublicValue };
     }
 
     public static BigInteger computeYCoordinate(BigInteger x) {
@@ -261,48 +228,9 @@ public class ECGroupOperationGadget extends Gadget {
         return y;
     }
 
-    public void validateInputs() {
-        generator.addOneAssertion(basePoint.x.checkNonZero());
-        assertValidPointOnEC(basePoint.x, basePoint.y);
-        assertPointOrder(basePoint, baseTable);
-        // generator.addOneAssertion(hPoint.x.checkNonZero());
-        // assertValidPointOnEC(hPoint.x, hPoint.y);
-        // assertPointOrder(basePoint, baseTable);
-        // assertPointOrder(hPoint, hTable);
-    }
-
-    private void assertPointOrder(AffinePoint p, AffinePoint[] table) {
-
-        Wire o = generator.createConstantWire(SUBGROUP_ORDER);
-        Wire[] bits = o.getBitWires(SUBGROUP_ORDER.bitLength()).asArray();
-
-        AffinePoint result = new AffinePoint(table[bits.length - 1]);
-        for (int j = bits.length - 2; j >= 1; j--) {
-            AffinePoint tmp = addAffinePoints(result, table[j]);
-            Wire isOne = bits[j];
-            result.x = result.x.add(isOne.mul(tmp.x.sub(result.x)));
-            result.y = result.y.add(isOne.mul(tmp.y.sub(result.y)));
-        }
-
-        // verify that: result = -p
-        generator.addEqualityAssertion(result.x, p.x);
-        generator.addEqualityAssertion(result.y, p.y.mul(-1));
-
-        // the reason the last iteration is handled separately is that the
-        // addition of
-        // affine points will throw an error due to not finding inverse for zero
-        // at the last iteration of the scalar multiplication. So, the check in
-        // the last iteration is done manually
-
-        // TODO: add more tests to check this method
-
-    }
-
     public Wire getOutputPublicValue() {
         return outputPublicValue;
     }
 
-    public Wire getSharedSecret() {
-        return sharedSecret;
-    }
+
 }

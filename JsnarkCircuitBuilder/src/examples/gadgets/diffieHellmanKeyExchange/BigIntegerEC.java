@@ -53,7 +53,7 @@ public class BigIntegerEC {
     // Config.FIELD_PRIME =
     // 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
-    public final static int SECRET_BITWIDTH = 253; // number of bits in the
+    public final static int SECRET_BITWIDTH = 254; // number of bits in the
                                                    // exponent. Note that the
                                                    // most significant bit
                                                    // should
@@ -112,14 +112,13 @@ public class BigIntegerEC {
      * 
      */
 
-    public BigIntegerEC(BigInteger baseX, BigInteger[] secretBits, String path) {
+    public BigIntegerEC(BigInteger baseX, BigInteger[] secretBits, String... path) {
         this.secretBits = secretBits;
         this.basePoint = new BigIntegerAffinePoint(baseX);
         // this.hPoint = new BigIntegerAffinePoint(hX);
         // checkSecretBits();
         computeYCoordinates(); // For efficiency reasons, we rely on affine
-                               // coordinate
-        
+                               // coordinate      
     }
 
     public BigInteger getOutput(){
@@ -139,10 +138,10 @@ public class BigIntegerEC {
         if (secretBits.length != SECRET_BITWIDTH) {
             throw new IllegalArgumentException();
         }
-        if(secretBits[0].compareTo(BigInteger.ZERO) != 0) System.out.println("Asserting secret bit conditions 0");
-        if(secretBits[1].compareTo(BigInteger.ZERO) != 0) System.out.println("Asserting secret bit conditions 1");
-        if(secretBits[2].compareTo(BigInteger.ZERO) != 0) System.out.println("Asserting secret bit conditions 2");
-        if(secretBits[SECRET_BITWIDTH - 1].compareTo(BigInteger.ONE) != 0) System.out.println("Asserting secret bit conditions 3");
+        //if(secretBits[0].compareTo(BigInteger.ZERO) != 0) System.out.println("Asserting secret bit conditions 0");
+        //if(secretBits[1].compareTo(BigInteger.ZERO) != 0) System.out.println("Asserting secret bit conditions 1");
+        //if(secretBits[2].compareTo(BigInteger.ZERO) != 0) System.out.println("Asserting secret bit conditions 2");
+        //if(secretBits[SECRET_BITWIDTH - 1].compareTo(BigInteger.ONE) != 0) System.out.println("Asserting secret bit conditions 3");
     }
 
     private void computeYCoordinates() {
@@ -162,9 +161,9 @@ public class BigIntegerEC {
 
 
     private BigIntegerAffinePoint[] preprocess(BigIntegerAffinePoint p) {
-        BigIntegerAffinePoint[] precomputedTable = new BigIntegerAffinePoint[secretBits.length];
+        BigIntegerAffinePoint[] precomputedTable = new BigIntegerAffinePoint[secretBits.length+1];
         precomputedTable[0] = p;
-        for (int j = 1; j < secretBits.length; j += 1) {
+        for (int j = 1; j <= secretBits.length; j += 1) {
             precomputedTable[j] = doubleBigIntegerAffinePoint(precomputedTable[j - 1]);
         }
         return precomputedTable;
@@ -178,10 +177,10 @@ public class BigIntegerEC {
      * Performs scalar multiplication (secretBits must comply with the conditions
      * above)
      */
-    private BigIntegerAffinePoint mul(BigIntegerAffinePoint p, BigInteger[] secretBits, BigIntegerAffinePoint[] precomputedTable) {
+    public BigIntegerAffinePoint mul(BigIntegerAffinePoint p, BigInteger[] secretBits, BigIntegerAffinePoint[] precomputedTable) {
 
-        BigIntegerAffinePoint result = new BigIntegerAffinePoint(precomputedTable[secretBits.length - 1]);
-        for (int j = secretBits.length - 2; j >= 0; j--) {
+        BigIntegerAffinePoint result = new BigIntegerAffinePoint(precomputedTable[secretBits.length]);
+        for (int j = secretBits.length - 1; j >= 0; j--) {
             BigIntegerAffinePoint tmp = addBigIntegerAffinePoints(result, precomputedTable[j]);
             
             BigInteger isOne = secretBits[j];
@@ -189,11 +188,12 @@ public class BigIntegerEC {
             result.x = result.x.add(isOne.multiply(tmp.x.subtract(result.x))).mod(Config.FIELD_PRIME);
             result.y = result.y.add(isOne.multiply(tmp.y.subtract(result.y))).mod(Config.FIELD_PRIME);
         }
+        result = subAffinePoints(result, precomputedTable[secretBits.length]);
 
         return result;
     }
 
-    private BigIntegerAffinePoint doubleBigIntegerAffinePoint(BigIntegerAffinePoint p) {
+    public BigIntegerAffinePoint doubleBigIntegerAffinePoint(BigIntegerAffinePoint p) {
         BigInteger three = new BigInteger("3");
         BigInteger two = new BigInteger("2");
         BigInteger x_2 = p.x.multiply(p.x);
@@ -204,7 +204,7 @@ public class BigIntegerEC {
         return new BigIntegerAffinePoint(newX.mod(Config.FIELD_PRIME), newY.mod(Config.FIELD_PRIME));
     }
 
-    private BigIntegerAffinePoint addBigIntegerAffinePoints(BigIntegerAffinePoint p1, BigIntegerAffinePoint p2) {
+    public static BigIntegerAffinePoint addBigIntegerAffinePoints(BigIntegerAffinePoint p1, BigIntegerAffinePoint p2) {
         BigInteger two = new BigInteger("2");
         BigInteger diffY = p1.y.subtract(p2.y);
         BigInteger diffX = p1.x.subtract(p2.x);
@@ -216,9 +216,21 @@ public class BigIntegerEC {
         return new BigIntegerAffinePoint(newX.mod(Config.FIELD_PRIME), newY.mod(Config.FIELD_PRIME));
     }
 
-    private BigInteger FieldDivision(BigInteger a, BigInteger b){
+    public static BigInteger FieldDivision(BigInteger a, BigInteger b){
         BigInteger c = a.multiply(b.modInverse(Config.FIELD_PRIME).mod(Config.FIELD_PRIME));
         return c;
+    }
+
+    private BigIntegerAffinePoint subAffinePoints(BigIntegerAffinePoint p1, BigIntegerAffinePoint p2) {
+        BigInteger two = new BigInteger("2");
+        BigInteger diffY = p1.y.add(p2.y);
+        BigInteger diffX = p1.x.subtract(p2.x);
+        BigInteger q = FieldDivision(diffY, diffX);
+        BigInteger q2 = q.multiply(q);
+        BigInteger q3 = q2.multiply(q);
+        BigInteger newX = q2.subtract(COEFF_A).subtract(p1.x).subtract(p2.x);
+        BigInteger newY = p1.x.multiply(two).add(p2.x).add(COEFF_A).multiply(q).subtract(q3).subtract(p1.y);
+        return new BigIntegerAffinePoint(newX.mod(Config.FIELD_PRIME), newY.mod(Config.FIELD_PRIME));
     }
 
     public static BigInteger computeYCoordinate(BigInteger x) {
@@ -265,32 +277,63 @@ public class BigIntegerEC {
         // TODO: add more tests to check this method
 
     }
+    
     public static BigInteger[] makesecretbits(BigInteger input){
-		BigInteger[] temp = Util.zeropadBigIntegers(Util.split(input, 1), SECRET_BITWIDTH-3);
-		BigInteger[] output = new BigInteger[SECRET_BITWIDTH];
-		output[0] = BigInteger.ZERO;
-		output[1] = BigInteger.ZERO;
-		output[2] = BigInteger.ZERO;
-		for(int i = 3 ; i < SECRET_BITWIDTH  ; i++)
-			output[i] = temp[i-3];
-		output[SECRET_BITWIDTH - 1] = BigInteger.ONE;
 		
-		return output;
+        BigInteger[] temp = Util.zeropadBigIntegers(Util.split(input, 1), SECRET_BITWIDTH);
+        BigInteger[] output = new BigInteger[SECRET_BITWIDTH];
+        // for(int i = 0 ; i < SECRET_BITWIDTH ; i++){
+        //     output[i] = temp[SECRET_BITWIDTH -1 -i];
+            
+        // }
+		return temp;
     }
-    public static void main(String[] args) throws Exception{
-        BigInteger G = new BigInteger("16377448892084713529161739182205318095580119111576802375181616547062197291263");
-        BigInteger secret = new BigInteger("1");
-        
-        BigInteger[] secretBits = new BigInteger[SECRET_BITWIDTH];
-        
-        secretBits = makesecretbits(secret);
-        
-              
-        BigIntegerEC ec = new BigIntegerEC(G, secretBits, "a");
 
-        for(int i = 0 ; i < secretBits.length ; i++)
-        System.out.println(i + "\t" + secretBits[i] + "\t");
-        System.out.println("ec out : " + ec.getOutput());
+    public static void main(String[] args) throws Exception{
+        BigInteger G = new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173");
+        BigInteger rho = new BigInteger("20444478212271350495463602922274610020133286575545030088692111896801588915112");
+        BigInteger[] rhoBits = makesecretbits(rho);
+        BigIntegerEC U = new BigIntegerEC(G, rhoBits);
+
+        BigInteger s = new BigInteger("234444782122713504954636029222746100201332865755450300886921118968015889151");
+        BigInteger[] sbits = makesecretbits(s);
+        BigIntegerEC S = new BigIntegerEC(G, sbits);
+
+        BigIntegerEC srho = new BigIntegerEC(S.getOutput(), rhoBits);
+        BigInteger sr = srho.getOutput();
+
+        BigInteger[] rbits = makesecretbits(BigInteger.ONE);
+        System.out.println("rBits" + rbits.length);
+        for(int i = 0 ; i < 254; i++)
+        System.out.print(rbits[i]);
+        System.out.println("");
+
+        BigIntegerEC Greal = new BigIntegerEC(G, rbits);
+        BigInteger gr = Greal.getOutput();
+        
+        BigIntegerAffinePoint a = new BigIntegerAffinePoint(sr);
+        a.y = computeYCoordinate(sr);
+        BigIntegerAffinePoint b = new BigIntegerAffinePoint(gr);
+        b.y = computeYCoordinate(gr);
+        BigInteger T = addBigIntegerAffinePoints(a, b).x;
+        
+        BigInteger srhoplusone = rho.multiply(s).mod(Config.FIELD_PRIME).add(BigInteger.ONE);
+        System.out.println(srhoplusone);
+        BigInteger[] srsr = makesecretbits(srhoplusone);
+
+        BigIntegerEC makeT = new BigIntegerEC(G, srsr);
+
+        System.out.println("G : " + G);
+        System.out.println("rho : " + rho);  
+        for(int i = 0 ;i < SECRET_BITWIDTH ; i++)
+        System.out.print(rhoBits[i]);
+        System.out.println("");
+        System.out.println("U : " + U.getOutput());
+        System.out.println("s : " + s);  
+        System.out.println("S : " + S.getOutput());
+        System.out.println("T : " + makeT.getOutput());
+        System.out.println("T : " + T);
+
     }
 }
 
