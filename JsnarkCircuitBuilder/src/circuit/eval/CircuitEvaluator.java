@@ -34,9 +34,8 @@ public class CircuitEvaluator {
 	}
 
 	public void setWireValue(Wire w, BigInteger v) {
-		// if(v.signum() < 0 || v.compareTo(Config.FIELD_PRIME) >=0){
-		if(v.signum() < 0 ){
-
+		if(v.signum() < 0 || v.compareTo(Config.FIELD_PRIME) >=0){
+		// if(v.signum() < 0 ){
 			//System.out.println(Config.FIELD_PRIME);
 			//System.out.println(v);
 			throw new IllegalArgumentException("Only positive values that are less than the modulus are allowed for this method.");
@@ -173,7 +172,9 @@ public class CircuitEvaluator {
 
 		BigInteger prime = new BigInteger(
 				"21888242871839275222246405745257275088548364400416034343698204186575808495617");
-
+		BigInteger CURVE_ORDER = new BigInteger(
+				"21888242871839275222246405745257275088597270486034011716802747351550446453784");
+		
 		circuitScanner.nextLine();
 		while (circuitScanner.hasNext()) {
 			String line = circuitScanner.nextLine();
@@ -213,6 +214,14 @@ public class CircuitEvaluator {
 					}
 					wiresToReport.add(outs.get(0));
 					assignment[outs.get(0)] = out.mod(prime);
+					;
+				} else if (line.startsWith("multiply ")) {
+					BigInteger out = BigInteger.ONE;
+					for (int w : ins) {
+						out = out.multiply(assignment[w]);
+					}
+					wiresToReport.add(outs.get(0));
+					assignment[outs.get(0)] = out.mod(CURVE_ORDER);
 					;
 				} else if (line.startsWith("add ")) {
 					BigInteger out = BigInteger.ZERO;
@@ -273,7 +282,22 @@ public class CircuitEvaluator {
 					BigInteger constant = new BigInteger(constantStr, 16);
 					assignment[outs.get(0)] = assignment[ins.get(0)].multiply(
 							constant).mod(prime);
-				} else {
+				} else if (line.startsWith("exponent-mul-")) {
+					String constantStr = line.substring("exponent-mul-".length(),
+							line.indexOf(" "));
+					BigInteger constant = new BigInteger(constantStr, 16);
+					assignment[outs.get(0)] = assignment[ins.get(0)].multiply(
+							constant).mod(CURVE_ORDER);
+				} else if (line.startsWith("exponent-mul-neg-")) {
+					String constantStr = line.substring("exponent-mul-neg-".length(),
+							line.indexOf(" "));
+					BigInteger constant = new BigInteger(constantStr, 16);
+					assignment[outs.get(0)] = assignment[ins.get(0)].multiply(
+							constant).mod(CURVE_ORDER);
+				} 
+				
+				
+				else {
 					System.err.println("Unknown Circuit Statement");
 				}
 

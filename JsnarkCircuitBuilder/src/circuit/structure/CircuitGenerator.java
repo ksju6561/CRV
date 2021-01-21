@@ -8,6 +8,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.FileReader;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,6 +91,12 @@ public abstract class CircuitGenerator {
 		buildCircuit();
 		
 		System.out.println("Circuit Generation Done for < " + circuitName + " >  \n \t Total Number of Constraints :  " + getNumOfConstraints() + "\n");
+	}
+
+	public final void readCircuit() {
+		System.out.println("reading circuit");
+		initCircuitConstruction();
+		System.out.println("reading circuit done");
 	}
 
 	public String getName() {
@@ -404,6 +411,13 @@ public abstract class CircuitGenerator {
 
 	public void prepFiles() {
 		writeCircuitFile();
+		if (circuitEvaluator == null) {
+			throw new NullPointerException("evalCircuit() must be called before prepFiles()");
+		}
+		circuitEvaluator.writeInputFile();
+	}
+
+	public void pFiles(){
 		if (circuitEvaluator == null) {
 			throw new NullPointerException("evalCircuit() must be called before prepFiles()");
 		}

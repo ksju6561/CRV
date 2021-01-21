@@ -30,9 +30,9 @@ public class ModGadget extends Gadget {
 		this.a = a;
 		this.b = b;
 		this.bitwidth = bitwidth;
-		if(bitwidth > 126){
-			throw new IllegalArgumentException("Bitwidth not supported yet.");
-		}
+		// if(bitwidth > 126){
+		// 	throw new IllegalArgumentException("Bitwidth not supported yet.");
+		// }
 		buildCircuit();
 	}
 

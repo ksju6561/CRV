@@ -68,6 +68,25 @@ public class Wire {
 		}
 	}
 
+// 	public Wire mulitply(BigInteger b, String... desc){
+// 		packIfNeeded(desc);
+// 		if(b.equals(BigInteger.ONE))
+// 			return this;
+// 		if(b.equals(BigInteger.ZERO))
+// 			return generator.zeroWire;
+// 		Wire out = new LinearCombinationWire(generator.currentWireId++);
+// 		Instruction op = new ExponentMulBasicOp(this, out, b, desc);
+// //		generator.addToEvaluationQueue(op);
+// 		Wire[] cachedOutputs = generator.addToEvaluationQueue(op);
+// 		if(cachedOutputs == null){
+// 			return out;
+// 		}
+// 		else{
+// 			generator.currentWireId--;
+// 			return cachedOutputs[0];
+// 		}
+// 	}
+
 	public Wire mul(long l, String... desc) {
 		return mul(new BigInteger(l + ""), desc);
 	}
@@ -96,7 +115,24 @@ public class Wire {
 			}
 		}
 	}
-
+	// public Wire multiply(Wire w, String... desc){
+	// 	if (w instanceof ConstantWire) {
+	// 		return this.multiply(((ConstantWire) w).getConstant(), desc);
+	// 	} else {
+	// 		packIfNeeded(desc);
+	// 		w.packIfNeeded(desc);
+	// 		Wire output = new VariableWire(generator.currentWireId++);
+	// 		Instruction op = new MulBasicOp2(this, w, output, desc);
+	// 		Wire[] cachedOutputs = generator.addToEvaluationQueue(op);
+	// 		if(cachedOutputs == null){
+	// 			return output;
+	// 		}
+	// 		else{
+	// 			generator.currentWireId--;
+	// 			return cachedOutputs[0];
+	// 		}
+	// 	}
+	// }
 	public Wire add(Wire w, String... desc) {
 		packIfNeeded(desc);
 		w.packIfNeeded(desc);
@@ -241,6 +277,7 @@ public class Wire {
 
 
 	}
+
 
 	public void restrictBitLength(int bitWidth, String... desc) {
 		WireArray bitWires = getBitWires();
@@ -495,6 +532,7 @@ public class Wire {
 			return generator.createConstantWire(v);
 		}
 	}
+
 
 	protected void packIfNeeded(String... desc) {
 		if (wireId == -1) {

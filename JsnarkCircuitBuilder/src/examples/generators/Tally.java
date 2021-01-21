@@ -18,6 +18,7 @@ import examples.gadgets.hash.SHA256Gadget;
 import examples.gadgets.hash.SubsetSumHashGadget;
 import examples.gadgets.diffieHellmanKeyExchange.ECGroupGeneratorGadget;
 import examples.gadgets.diffieHellmanKeyExchange.ECGroupOperationGadget;
+import examples.gadgets.math.ModConstantGadget;
 
 
 public class Tally extends CircuitGenerator {
@@ -30,10 +31,7 @@ public class Tally extends CircuitGenerator {
     /* WITNESS */
     private Wire SK;
 
-    private int leafNumofWords = 8;
-    private int leafWordBitWidth = 32;
     private int numofelector;
-    private int msgsize;
     private int treeHeight;
     public static final int EXPONENT_BITWIDTH = 254; // in bits
 
@@ -47,6 +45,11 @@ public class Tally extends CircuitGenerator {
     public Wire[] expwire(Wire input){
         Wire[] output = input.getBitWires(EXPONENT_BITWIDTH).asArray();
 		return output;
+    }
+    
+    private Wire mulexp(Wire a, Wire b){
+		ModConstantGadget mod = new ModConstantGadget(a, b, Config.CURVE_ORDER);
+		return mod.getOutputWires()[0]; 
 	}
 
     
@@ -58,16 +61,15 @@ public class Tally extends CircuitGenerator {
         W = createInputWire("W"); //wsum
       
         msgsum = createInputWire("msgsum");
-        Wire[] msumbits = msgsum.getBitWires(EXPONENT_BITWIDTH).asArray();
+		Wire rand = createConstantWire(new BigInteger("123141251243"));
 
         SK = createProverWitnessWire("sk");
-        Wire[] skbits = expwire(SK);
-        ECGroupGeneratorGadget dec2 = new ECGroupGeneratorGadget(G, skbits);
-        Wire check1 = dec2.getOutputPublicValue();
-        makeOutput(check1, "dec2");
+        ECGroupGeneratorGadget dec1 = new ECGroupGeneratorGadget(G, SK);
+        Wire check1 = dec1.getOutputPublicValue();
+        // makeOutput(check1, "dec1");
         addEqualityAssertion(check1, U, "check1");
 
-        ECGroupOperationGadget dec = new ECGroupOperationGadget(G, msumbits, V, skbits);
+        ECGroupOperationGadget dec = new ECGroupOperationGadget(V, SK, G, mulexp(rand, msgsum));
         Wire check2 = dec.getOutputPublicValue();
          
         addEqualityAssertion(check2, W, "check2");
@@ -77,14 +79,14 @@ public class Tally extends CircuitGenerator {
     @Override
     public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
         circuitEvaluator.setWireValue(G, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
-        circuitEvaluator.setWireValue(U, new BigInteger("8242025496843787907786648063961487221225108903776185277615402935691149335791"));
-        circuitEvaluator.setWireValue(V, new BigInteger("6716520531993944033977721086270401368654711195597428675989524982305607452325"));
-        circuitEvaluator.setWireValue(W, new BigInteger("8113092186587487098704135767833663470937458770672298017328502239202175637389"));
+        circuitEvaluator.setWireValue(U, new BigInteger("8770841330403347030926649719068993689202161186696114159318225920256745879147"));
+        circuitEvaluator.setWireValue(V, new BigInteger("18437695250178433367117794068340095227102603266608906145263062046682943112561"));
+        circuitEvaluator.setWireValue(W, new BigInteger("18846636015165217144662772718052395666868227456945327617274249870237629825709"));
 
-        circuitEvaluator.setWireValue(msgsum, new BigInteger("140737488355328"));
+        circuitEvaluator.setWireValue(msgsum, new BigInteger("2147483648"));
         
         
-        circuitEvaluator.setWireValue(SK, new BigInteger("20444478212271350495463602922274610020133286575545030088692111896801588915112"));
+        circuitEvaluator.setWireValue(SK, new BigInteger("204444782122713504954636029222746100201332865755450300886921118968015889151"));
         
              
     }

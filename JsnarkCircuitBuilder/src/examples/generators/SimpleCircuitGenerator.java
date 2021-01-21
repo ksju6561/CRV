@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import circuit.eval.CircuitEvaluator;
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
+import util.Util;
 
 public class SimpleCircuitGenerator extends CircuitGenerator {
 
@@ -18,38 +19,40 @@ public class SimpleCircuitGenerator extends CircuitGenerator {
 		super(circuitName);
 	}
 
+	public Wire power(Wire input, Wire exp) {
+		Wire zeroWire = createConstantWire(new BigInteger("0"));
+		Wire oneWire = createConstantWire(new BigInteger("1"));
+		Wire res = createConstantWire(new BigInteger("1"));
+		int index = 0;
+
+		Wire[] getBitExp = exp.getBitWires(256).asArray();
+		for (int i = 0; i < 256; i++) {
+			Wire tmp = input.sub(1);
+			tmp = tmp.mul(getBitExp[i]);
+			tmp = tmp.add(1);
+
+			res = res.mul(tmp);
+
+			exp = exp.shiftRight(1, 256);
+			input = input.mul(input);
+		}
+		return res;
+	}
+
 	@Override
 	protected void buildCircuit() {
-		input_s = createInputWireArray(1);
-		
+		for(int i = 0 ; i<8 ; i++)
+		input_s = createInputWireArray(8, "pp" + Integer.toString(i));
 		makeOutputArray(input_s,"input");
-		Wire[] out1 = input_s[0].getBitWires(2).asArray();
-		makeOutputArray(out1,"test1");
-		// Wire[] out2 = input_s[0].getBitWires(4).asArray();
-		// makeOutputArray(out2,"test2");
-		// Wire[] out3 = input_s[0].getBitWires(8).asArray();
-		// makeOutputArray(out3,"test3");
-
-		// // declare input array of length 4.
-		// inputs = createInputWireArray(4);
-
-		// // r1 = in0 * in1
-		// Wire r1 = inputs[0].mul(inputs[1]);
-
-		// // r2 = in2 + in3
-		// Wire r2 = inputs[2].add(inputs[3]);
-
-		// // result = (r1+5)*(6*r2)
-		// Wire result = r1.add(5).mul(r2.mul(6));
-
-		// // mark the wire as output
-		// makeOutput(result);
+		
+		
 
 	}
 
 	@Override
 	public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
-		circuitEvaluator.setWireValue(input_s[0], new BigInteger("3",16));
+		for(int i = 0 ; i < 8 ; i++)
+		circuitEvaluator.setWireValue(input_s[0], Util.nextRandomBigInteger(32));
 		// for (int i = 0; i < 4; i++) {
 		// 	circuitEvaluator.setWireValue(inputs[i], i + 1);
 		// }

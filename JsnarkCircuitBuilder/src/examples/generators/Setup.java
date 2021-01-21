@@ -25,43 +25,38 @@ import circuit.eval.CircuitEvaluator;
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
 import circuit.structure.WireArray;
+import examples.gadgets.hash.MerkleTreePathGadget;
+import examples.gadgets.hash.SubsetSumHashGadget;
 
-public class Setup{
+public class Setup {
 
-	public static BigInteger G, Grho;
-	public static BigInteger[] e_id;
+	public BigInteger G;
+	public BigInteger Grho;
+	public BigInteger[] e_id;
 	private int leafNumOfWords = 8;
 
 	private BigInteger rho;
 	private int treeHeight;
 
-    public Setup() {
+	public Setup() {
 
-    }
-    private static BigInteger GCD(BigInteger a,BigInteger b) { if (b.signum() == 0) { return a; } return GCD(b,a.mod(b)); }
+	}
 
-	public BigInteger Generator()
-	{
-		BigInteger g, b = Config.FIELD_PRIME;
-		g = Util.nextRandomBigInteger(256);
-		while(GCD(g, b).compareTo(BigInteger.ONE) == 1)
-			g = Util.nextRandomBigInteger(256);	
-		 
-		
+	public BigInteger Generator() {
+		BigInteger g = Util.nextRandomBigInteger(254);
+
+		while (g.gcd(Config.FIELD_PRIME).compareTo(BigInteger.ONE) == 1)
+			g = Util.nextRandomBigInteger(254);
 		return g;
-
 	}
-	
-	public BigInteger grho(BigInteger g)
-	{
-		rho = Util.nextRandomBigInteger(256);
+
+	public BigInteger grho(BigInteger g) {
+		rho = Util.nextRandomBigInteger(249);
 		BigInteger grho = g.modPow(rho, Config.FIELD_PRIME);
-		
-        return grho;
+		return grho;
 	}
 
-	public void OpenElection()
-	{
+	public void OpenElection() {
 		G = Generator();
 		Grho = grho(G);
 		e_id = new BigInteger[leafNumOfWords];
@@ -74,14 +69,13 @@ public class Setup{
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
 
 			if (file.isFile() && file.canWrite()) {
-
 				bufferedWriter.write(G.toString());
 				bufferedWriter.newLine();
 				bufferedWriter.write(Grho.toString());
-				// bufferedWriter.newLine();
-				// bufferedWriter.write(rho.toString());
-				bufferedWriter.close();
+				bufferedWriter.newLine();
 			}
+
+			bufferedWriter.close();
 		} catch (IOException e) {
 			System.out.println(e);
 		}
@@ -91,14 +85,11 @@ public class Setup{
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
 
 			if (file.isFile() && file.canWrite()) {
-
 				bufferedWriter.write(rho.toString());
-				// bufferedWriter.newLine();
-				// bufferedWriter.write(Grho.toString());
-				// bufferedWriter.newLine();
-				// bufferedWriter.write(rho.toString());
-				bufferedWriter.close();
+				bufferedWriter.newLine();
 			}
+			bufferedWriter.close();
+
 		} catch (IOException e) {
 			System.out.println(e);
 		}
@@ -109,14 +100,10 @@ public class Setup{
 			BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
 
 			if (file.isFile() && file.canWrite()) {
-				for(int i = 0 ; i < leafNumOfWords ; i++){
+				for (int i = 0; i < leafNumOfWords; i++) {
 					bufferedWriter.write(e_id[i].toString());
 					bufferedWriter.newLine();
 				}
-				// bufferedWriter.newLine();
-				// bufferedWriter.write(Grho.toString());
-				// bufferedWriter.newLine();
-				// bufferedWriter.write(rho.toString());
 				bufferedWriter.close();
 			}
 		} catch (IOException e) {
@@ -125,21 +112,20 @@ public class Setup{
 
 	}
 
-	public static void main(String[] args) throws Exception{
+	public static void main(String[] args) throws Exception {
 		Setup setup = new Setup();
-		Vote vote = new Vote("vote", 16);
-		Tally tally = new Tally("tally");
-		Register register = new Register("register");
+		// Vote vote = new Vote("vote", 16);
+		// Tally tally = new Tally("tally");
+		// Register register = new Register("register");
 		setup.OpenElection();
-		vote.setup();
+		// vote.setup();
 		System.out.println("VOTE CRS");
 		// tally.setup();
 		// System.out.println("TALLY CRS");
-		register.setup();
-		
-		System.out.println("REGISTER CRS");
+		// register.setup();
+		// System.out.println("REGISTER CRS");
 
 		// System.out.println(setup.rho);
-			
+
 	}
 }

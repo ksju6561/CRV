@@ -281,8 +281,10 @@ public class SimpleCircuitGenerator_vote_ajitai_HO extends CircuitGenerator {
         //makeOutputArray(PK_id, "PK_id");
 		// System.out.println("pk_id");
 		
-		Wire[] ekpk = Util.concat(EK_id, PK_id); 
-	
+		Wire[] ekbits = new WireArray(EK_id).getBits(leafWordBitWidth).asArray();
+		SubsetSumHashGadget subsetSumHashGadget3 = new SubsetSumHashGadget(ekbits, false);
+		Wire[] hashek = subsetSumHashGadget3.getOutputWires();
+		Wire[] ekpk = Util.concat(hashek, PK_id);	
 		intermediateHasheWires = createProverWitnessWireArray(hashDigestDimension * treeHeight, "Intermediate Hashes");
 
 		merkleTreeGadget = new MerkleTreePathGadget(directionSelector, ekpk, intermediateHasheWires, 254, treeHeight);

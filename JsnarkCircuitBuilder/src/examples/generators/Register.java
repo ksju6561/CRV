@@ -29,18 +29,23 @@ import examples.gadgets.hash.SubsetSumHashGadget;
 public class Register extends CircuitGenerator {
 
     /*  input */
-    private Wire[][] pp;
+    private Wire[][] PP;
     /* witness */
     private Wire[] SK_id;
     /* output */
     private Wire[] PK_id;
 
+    /******************* BigInteger Values  ******************/
+    public BigInteger[] sk_id;
+
     private int leafNumOfWords = 8;
     private int leafWordBitWidth = 32;
     private SubsetSumHashGadget subsetSumHashGadget;
+    private int mode = 0 ;
 
-    public Register(String circuitName){
+    public Register(String circuitName, int mode){
         super(circuitName);
+        this.mode = mode;
     }
 
     @Override
@@ -54,9 +59,15 @@ public class Register extends CircuitGenerator {
     }
 
     @Override
-	public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
-        for(int i = 0 ; i < leafNumOfWords ; i++)
-        circuitEvaluator.setWireValue(SK_id[i], Integer.MAX_VALUE);
+    public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
+        if (mode == 0) {
+            for (int i = 0; i < leafNumOfWords; i++)
+                circuitEvaluator.setWireValue(SK_id[i], Integer.MAX_VALUE);
+        }
+        if (mode == 1) {
+            for (int i = 0; i < leafNumOfWords; i++)
+                circuitEvaluator.setWireValue(SK_id[i], sk_id[i]);
+        }
     }
     
     public void setup()
@@ -64,15 +75,17 @@ public class Register extends CircuitGenerator {
         this.generateCircuit();
         this.evalCircuit();
         this.prepFiles();
-        this.runLibsnark();
+        this.runLibsnarksetup(0);
     }
 
     public static void main(String[] arga) throws Exception{
-        Register register = new Register("register");
+        Register register = new Register("register", 0);
         register.generateCircuit();
         register.evalCircuit();
         register.prepFiles();
-        register.runLibsnark();
+        register.runLibsnarksetup(0);
+        register.runLibsnarkproof(0);
+        register.runLibsnarkVerify(0);
     }
 
 }

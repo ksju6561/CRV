@@ -4,6 +4,7 @@
 package circuit.structure;
 
 import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.Arrays;
 
 import util.Util;
@@ -90,7 +91,6 @@ public class WireArray {
 		}
 		return output;
 	}
-	
 	
 	public WireArray addWireArray(WireArray v, int desiredLength, String...desc) {
 		Wire[] ws1 = adjustLength(array, desiredLength);

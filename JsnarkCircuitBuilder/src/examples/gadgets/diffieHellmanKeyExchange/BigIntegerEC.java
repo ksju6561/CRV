@@ -111,15 +111,24 @@ public class BigIntegerEC {
      * 
      * 
      */
+    public static BigInteger[] makesecretbits(BigInteger input){
+        
+        input = input.mod(Config.CURVE_ORDER);
+        BigInteger[] temp = Util.zeropadBigIntegers(Util.split(input, 1), SECRET_BITWIDTH);
+        BigInteger[] output = new BigInteger[SECRET_BITWIDTH];
+        System.arraycopy(temp, 0, output, 3, temp.length);
+		return output;
+    }
 
-    public BigIntegerEC(BigInteger baseX, BigInteger[] secretBits, String... path) {
-        this.secretBits = secretBits;
+    public BigIntegerEC(BigInteger baseX, BigInteger secretBits, String... path) {
+        this.secretBits = makesecretbits(secretBits);
         this.basePoint = new BigIntegerAffinePoint(baseX);
         // this.hPoint = new BigIntegerAffinePoint(hX);
         // checkSecretBits();
         computeYCoordinates(); // For efficiency reasons, we rely on affine
                                // coordinate      
     }
+
 
     public BigInteger getOutput(){
         baseTable = preprocess(basePoint);
@@ -278,37 +287,22 @@ public class BigIntegerEC {
 
     }
     
-    public static BigInteger[] makesecretbits(BigInteger input){
-		
-        BigInteger[] temp = Util.zeropadBigIntegers(Util.split(input, 1), SECRET_BITWIDTH);
-        BigInteger[] output = new BigInteger[SECRET_BITWIDTH];
-        // for(int i = 0 ; i < SECRET_BITWIDTH ; i++){
-        //     output[i] = temp[SECRET_BITWIDTH -1 -i];
-            
-        // }
-		return temp;
-    }
+    
 
     public static void main(String[] args) throws Exception{
         BigInteger G = new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173");
-        BigInteger rho = new BigInteger("20444478212271350495463602922274610020133286575545030088692111896801588915112");
-        BigInteger[] rhoBits = makesecretbits(rho);
-        BigIntegerEC U = new BigIntegerEC(G, rhoBits);
+        BigInteger rho = new BigInteger("2044447821227135049546360292227461002013328657554503008869211189680158891511");
+
+        BigIntegerEC U = new BigIntegerEC(G, rho);
 
         BigInteger s = new BigInteger("234444782122713504954636029222746100201332865755450300886921118968015889151");
-        BigInteger[] sbits = makesecretbits(s);
-        BigIntegerEC S = new BigIntegerEC(G, sbits);
 
-        BigIntegerEC srho = new BigIntegerEC(S.getOutput(), rhoBits);
+        BigIntegerEC S = new BigIntegerEC(G, s);
+
+        BigIntegerEC srho = new BigIntegerEC(S.getOutput(), rho);
         BigInteger sr = srho.getOutput();
-
-        BigInteger[] rbits = makesecretbits(BigInteger.ONE);
-        System.out.println("rBits" + rbits.length);
-        for(int i = 0 ; i < 254; i++)
-        System.out.print(rbits[i]);
-        System.out.println("");
-
-        BigIntegerEC Greal = new BigIntegerEC(G, rbits);
+        
+        BigIntegerEC Greal = new BigIntegerEC(G, new BigInteger("3224"));
         BigInteger gr = Greal.getOutput();
         
         BigIntegerAffinePoint a = new BigIntegerAffinePoint(sr);
@@ -317,16 +311,12 @@ public class BigIntegerEC {
         b.y = computeYCoordinate(gr);
         BigInteger T = addBigIntegerAffinePoints(a, b).x;
         
-        BigInteger srhoplusone = rho.multiply(s).mod(Config.FIELD_PRIME).add(BigInteger.ONE);
-        System.out.println(srhoplusone);
-        BigInteger[] srsr = makesecretbits(srhoplusone);
-
-        BigIntegerEC makeT = new BigIntegerEC(G, srsr);
+        BigInteger srhoplusone = rho.multiply(s).mod(Config.CURVE_ORDER).add(new BigInteger("3224"));
+        System.out.println("sr+1\t" + srhoplusone);
+        BigIntegerEC makeT = new BigIntegerEC(G, srhoplusone);
 
         System.out.println("G : " + G);
         System.out.println("rho : " + rho);  
-        for(int i = 0 ;i < SECRET_BITWIDTH ; i++)
-        System.out.print(rhoBits[i]);
         System.out.println("");
         System.out.println("U : " + U.getOutput());
         System.out.println("s : " + s);  

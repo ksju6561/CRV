@@ -89,5 +89,6 @@ public class SubsetSumHashGadget extends Gadget {
 	@Override
 	public Wire[] getOutputWires() {
 		return outWires;
+		
 	}
 }

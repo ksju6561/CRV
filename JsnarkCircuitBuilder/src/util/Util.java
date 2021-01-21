@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
+import circuit.structure.ConstantWire;
 import circuit.structure.Wire;
+import circuit.structure.WireArray;
 
 public class Util {
 
@@ -75,6 +77,14 @@ public class Util {
 		return all;
 	}
 
+	public static Wire[] concat(Wire w, Wire a) {
+		Wire[] all = new Wire[2];
+		for (int i = 0; i < all.length; i++) {
+			all[i] = i < 1 ? w : a;
+		}
+		return all;
+	}
+
 	public static int[] concat(int[][] arrays) {
 		int sum = 0;
 		for (int i = 0; i < arrays.length; i++) {
@@ -89,6 +99,10 @@ public class Util {
 		}
 		return all;
 	}
+
+	// public static Wire concatWire(Wire a, Wire b){
+	// 	Wire out = a.
+	// }
 
 	public static BigInteger[] randomBigIntegerArray(int num, BigInteger n) {
 
@@ -162,6 +176,13 @@ public class Util {
 		return outs;
 	}
 
+	public static Wire[] reverseBits(Wire[] inBitWires){
+		Wire[] outs = new Wire[inBitWires.length];
+		for(int i = 0 ; i < inBitWires.length ; i++)
+		outs[i] = inBitWires[inBitWires.length - 1 - i];
+		return outs;
+	}
+
 	public static String arrayToString(int[] a, String separator) {
 		StringBuilder s = new StringBuilder();
 		for (int i = 0; i < a.length - 1; i++) {
@@ -208,6 +229,23 @@ public class Util {
 		}
 		return chunks;
 	}
+
+	public static Wire[] split(Wire x, int totalbitlength, int numchunks, int chunksize){
+		Wire[] xbit = x.getBitWires(totalbitlength).asArray();
+		int diff = numchunks * chunksize - totalbitlength;
+		xbit = new WireArray(xbit).shiftRight(numchunks * chunksize, diff).asArray();
+		Wire[][] xbitsplit = new Wire[numchunks][chunksize];
+		for(int i = 0 ; i < numchunks ; i++)
+			for(int j = 0 ; j < chunksize ; j++)
+				xbitsplit[i][j] = xbit[i * numchunks + j];
+		Wire[] output = new Wire[numchunks];
+		for(int i = 0 ; i < numchunks ; i++){
+			output[i] = new WireArray(xbitsplit[i]).packAsBits(chunksize);
+		}
+		return output;
+	}
+	
+
 	
 	public static Wire[] padWireArray(Wire[] a, int length, Wire p) {
 		if (a.length == length) {
@@ -222,6 +260,40 @@ public class Util {
 				newArray[k] = p;
 			}
 			return newArray;
+		}
+	}
+
+	public static Wire[] padfrontWireArray(Wire[] a, int length, Wire p) {
+		if (a.length == length) {
+			return a;
+		} else if (a.length > length) {
+			System.err.println("No padding needed!");
+			return a;
+		} else {
+			Wire[] newArray = new Wire[length];
+			for (int k = 0; k < length; k++) {
+				newArray[k] = p;
+			}
+			System.arraycopy(a, 0, newArray, length-a.length, a.length);
+			return newArray;
+		}
+	}
+	
+	public static BigInteger[] zeropadBigIntegers(BigInteger[] a, int totallength){
+		if(a.length == totallength){
+			return a;
+		}
+		else if(a.length > totallength){
+			System.err.println("No padding needed!");
+			return a;
+		} else{
+			BigInteger[] output = new BigInteger[totallength];
+			System.arraycopy(a, 0, output, 0, a.length);
+			for(int k = a.length ; k < totallength ; k++){
+				output[k] = BigInteger.ZERO;
+			}
+			
+			return output;
 		}
 	}
 }
