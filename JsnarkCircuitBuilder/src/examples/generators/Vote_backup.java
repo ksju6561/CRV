@@ -20,7 +20,7 @@ import examples.gadgets.hash.MerkleTreePathGadget;
 import examples.gadgets.diffieHellmanKeyExchange.ECGroupOperationGadget;
 
 
-public class Vote extends CircuitGenerator {
+public class Vote_backup extends CircuitGenerator {
 	/********************* INPUT ***************************/
 	private Wire G;
 	private Wire U;
@@ -56,7 +56,7 @@ public class Vote extends CircuitGenerator {
 
 	public static final int EXPONENT_BITWIDTH = 254; // in bits
 
-	public Vote(String circuitName, int treeHeight, int numofelector) {
+	public Vote_backup(String circuitName, int treeHeight, int numofelector) {
 		super(circuitName);
 		this.treeHeight = treeHeight;
 		this.numofelector = numofelector;
@@ -111,13 +111,17 @@ public class Vote extends CircuitGenerator {
 		root = merkleTreeGadget.getOutputWires();
 		makeOutputArray(root, "Root");
 		//  2^8  
+		
+		ECGroupGeneratorGadget Gr = new ECGroupGeneratorGadget(G, randomizedEnc);
+		Wire gr = Gr.getOutputPublicValue();
+		makeOutput(gr, "gr");
 
 		long beforeTime = System.currentTimeMillis();
 		
 		ECGroupOperationGadget encV = new ECGroupOperationGadget(G, randomizedEnc, EK_id[0], msg); //하나에 120ms 정도
-		Wire V = encV.getOutputWires()[0];
+		Wire V = encV.getOutputPublicValue();
 		ECGroupOperationGadget encW = new ECGroupOperationGadget(U, randomizedEnc, EK_id[1], msg);
-		Wire W = encW.getOutputWires()[0];
+		Wire W = encW.getOutputPublicValue();
 
 		long afterTime = System.currentTimeMillis(); 
 		long secDiffTime = (afterTime - beforeTime);
@@ -157,7 +161,7 @@ public class Vote extends CircuitGenerator {
 
 	public static void main(String[] args) throws Exception {
 
-		Vote generator = new Vote("Vote", 16, 15); // 16 : 5 10 15
+		Vote_backup generator = new Vote_backup("Vote", 16, 15); // 16 : 5 10 15
 		generator.generateCircuit();
 		generator.evalCircuit();
 		generator.prepFiles();

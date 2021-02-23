@@ -54,17 +54,16 @@ public class ModConstantGadget extends Gadget {
 	}
 
 	private void buildCircuit() {
-
-		r = generator.createProverWitnessWire("mod result");
-		q = generator.createProverWitnessWire("division result");
+		Wire ab = a.mul(b);
+		r = generator.createProverWitnessWire();
+		q = generator.createProverWitnessWire();
 
 		// notes about how to use this code block can be found in FieldDivisionGadget
 		generator.specifyProverWitnessComputation(new Instruction() {
 			@Override
 			public void evaluate(CircuitEvaluator evaluator) {
-				BigInteger aValue = evaluator.getWireValue(a);
-				BigInteger bValue = evaluator.getWireValue(b);
-				BigInteger mulValue = aValue.multiply(bValue);
+				BigInteger mulValue = evaluator.getWireValue(ab);
+			
 				BigInteger rValue = mulValue.mod(c);
 				evaluator.setWireValue(r, rValue);
 				BigInteger qValue = mulValue.divide(c);

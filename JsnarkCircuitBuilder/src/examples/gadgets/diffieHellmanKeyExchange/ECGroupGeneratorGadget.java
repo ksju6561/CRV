@@ -160,7 +160,7 @@ public class ECGroupGeneratorGadget extends Gadget {
                     evaluator.setWireValue(basePoint.y, computeYCoordinate(x));
                 }
             });
-            assertValidPointOnEC(basePoint.x, basePoint.y);
+            // assertValidPointOnEC(basePoint.x, basePoint.y);
         }
 
     }
@@ -206,8 +206,12 @@ public class ECGroupGeneratorGadget extends Gadget {
         for (int j = secretBits.length - 1; j >= 0; j--) {
             AffinePoint tmp = addAffinePoints(result, precomputedTable[j]);
             Wire isOne = secretBits[j];
-            result.x = result.x.add(isOne.mul(tmp.x.sub(result.x)));
-            result.y = result.y.add(isOne.mul(tmp.y.sub(result.y)));
+            Wire tx1 = tmp.x.sub(result.x);
+            Wire ty1 = tmp.y.sub(result.y);
+            Wire tx2 = isOne.mul(tx1);
+            Wire ty2 = isOne.mul(ty1);
+            result.x = result.x.add(tx2);
+            result.y = result.y.add(ty2);
         }
         
         // Wire isOne = secretBits[0].invAsBit();
@@ -220,12 +224,21 @@ public class ECGroupGeneratorGadget extends Gadget {
 
     private AffinePoint doubleAffinePoint(AffinePoint p) {
         Wire x_2 = p.x.mul(p.x);
-        Wire l1 = new FieldDivisionGadget(x_2.mul(3).add(p.x.mul(COEFF_A).mul(2)).add(1), p.y.mul(2))
-                .getOutputWires()[0];
+        Wire tmp1 = x_2.mul(3);
+        Wire tmp2 = p.x.mul(COEFF_A);
+        Wire tmp3 = tmp2.mul(2);
+        Wire tmp4 = tmp1.add(tmp3);
+        Wire tmpx = tmp4.add(1);
+        Wire tmpy = p.y.mul(2);
+        Wire l1 = new FieldDivisionGadget(tmpx, tmpy).getOutputWires()[0];
         Wire l2 = l1.mul(l1);
-        Wire newX = l2.sub(COEFF_A).sub(p.x).sub(p.x);
-        Wire newY = p.x.mul(3).add(COEFF_A).sub(l2).mul(l1).sub(p.y);
-        return new AffinePoint(newX, newY);
+        Wire newX1 = l2.sub(COEFF_A);
+        Wire newX2 = newX1.sub(p.x).sub(p.x);
+        Wire newY1 = p.x.mul(3);
+        Wire newY2 = newY1.add(COEFF_A).sub(l2);
+        Wire newY3 = newY2.mul(l1);
+        Wire newY4 = newY3.sub(p.y);
+        return new AffinePoint(newX2, newY4);
     }
 
     private AffinePoint addAffinePoints(AffinePoint p1, AffinePoint p2) {
@@ -233,21 +246,25 @@ public class ECGroupGeneratorGadget extends Gadget {
         Wire diffX = p1.x.sub(p2.x);
         Wire q = new FieldDivisionGadget(diffY, diffX).getOutputWires()[0];
         Wire q2 = q.mul(q);
-        Wire q3 = q2.mul(q);
-        Wire newX = q2.sub(COEFF_A).sub(p1.x).sub(p2.x);
-        Wire newY = p1.x.mul(2).add(p2.x).add(COEFF_A).mul(q).sub(q3).sub(p1.y);
-        return new AffinePoint(newX, newY);
+        Wire newX1 = q2.sub(COEFF_A);
+        Wire newX2 = newX1.sub(p1.x);
+        Wire newX3 = newX2.sub(p2.x);
+        Wire newY1 = p1.x.sub(newX3);
+        Wire newY2 = newY1.mul(q);
+        Wire newY3 = newY2.sub(p1.y);
+        return new AffinePoint(newX3, newY3);
     }
 
     private AffinePoint subAffinePoints(AffinePoint p1, AffinePoint p2) {
-        AffinePoint negp2 = new AffinePoint(p2.x, p2.y.mul(-1));
+        Wire negp2y = p2.y.mul(-1);
+        AffinePoint negp2 = new AffinePoint(p2.x, negp2y);
         AffinePoint newAffinepoint = addAffinePoints(p1, negp2);
         return newAffinepoint;
     }
 
     @Override
     public Wire[] getOutputWires() {
-        return secretBits;
+        return new Wire[] {outputPublicValue};
     }
 
     public static BigInteger computeYCoordinate(BigInteger x) {

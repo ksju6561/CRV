@@ -25,14 +25,19 @@ public class FieldDivisionGadget extends Gadget {
 		// if the input values are constant (i.e. known at compilation time), we
 		// can save one constraint
 		if (a instanceof ConstantWire && b instanceof ConstantWire) {
-			c = generator.createConstantWire(((ConstantWire) a)
-					.getConstant()
-					.multiply(
-							((ConstantWire) b).getConstant().modInverse(
-									Config.FIELD_PRIME))
-					.mod(Config.FIELD_PRIME));
+			BigInteger aVal = ((ConstantWire) a).getConstant();
+			BigInteger bVal = ((ConstantWire) b).getConstant();
+			BigInteger binv = bVal.modInverse(Config.FIELD_PRIME);
+			BigInteger cVal = binv.multiply(aVal).mod(Config.FIELD_PRIME);
+			c = generator.createConstantWire(cVal);
+			// c = generator.createConstantWire(((ConstantWire) a)
+			// 		.getConstant()
+			// 		.multiply(
+			// 				((ConstantWire) b).getConstant().modInverse(
+			// 						Config.FIELD_PRIME))
+			// 		.mod(Config.FIELD_PRIME));
 		} else {
-			c = generator.createProverWitnessWire(debugStr("division result"));
+			c = generator.createProverWitnessWire("division result");
 			buildCircuit();
 		}
 	}
@@ -47,15 +52,17 @@ public class FieldDivisionGadget extends Gadget {
 			public void evaluate(CircuitEvaluator evaluator) {
 				BigInteger aValue = evaluator.getWireValue(a);
 				BigInteger bValue = evaluator.getWireValue(b);
-				BigInteger cValue = aValue.multiply(
-						bValue.modInverse(Config.FIELD_PRIME)).mod(
-						Config.FIELD_PRIME);
+				BigInteger binvValue = bValue.modInverse(Config.FIELD_PRIME);
+				BigInteger cValue = aValue.multiply(binvValue).mod(Config.FIELD_PRIME);
+				// BigInteger cValue = aValue.multiply(
+				// 		bValue.modInverse(Config.FIELD_PRIME)).mod(
+				// 		Config.FIELD_PRIME);
 				evaluator.setWireValue(c, cValue);
 			}
 
 		});
-		generator.addAssertion(b, c, a,
-				debugStr("Assertion for division result"));
+		// generator.addAssertion(b, c, a,
+				// debugStr("Assertion for division result"));
 
 		/*
 		 * Two notes: 1) The order of the above two statements matters (the

@@ -98,8 +98,8 @@ public class ECGroupOperationGadget extends Gadget {
         ECGroupGeneratorGadget gadget1 = new ECGroupGeneratorGadget(baseX, expX, desc);
         ECGroupGeneratorGadget gadget2 = new ECGroupGeneratorGadget(baseY, expY, desc);
         
-        this.basePoint = new AffinePoint(gadget1.getOutputPublicValue());
-        this.hPoint = new AffinePoint(gadget2.getOutputPublicValue());
+        this.basePoint = new AffinePoint(gadget1.getOutputWires()[0]);
+        this.hPoint = new AffinePoint(gadget2.getOutputWires()[0]);
         computeYCoordinates();
         
         buildCircuit();
@@ -203,7 +203,7 @@ public class ECGroupOperationGadget extends Gadget {
 
     @Override
     public Wire[] getOutputWires() {
-        return new Wire[] { xout, yout };
+        return new Wire[] { outputPublicValue, xout, yout };
     }
 
     public static BigInteger computeYCoordinate(BigInteger x) {
