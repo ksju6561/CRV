@@ -29,7 +29,7 @@ namespace libsnark {
  */
 template<typename ppT>
 void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
-                        const bool test_serialization, string name, string n);
+                        const bool test_serialization, string name);
 
 template<typename ppT>
 void run_r1cs_gg_ppzksnark_setup(const r1cs_example<libff::Fr<ppT> > &example,
@@ -37,9 +37,12 @@ void run_r1cs_gg_ppzksnark_setup(const r1cs_example<libff::Fr<ppT> > &example,
 
 template<typename ppT>
 bool run_r1cs_gg_ppzksnark_verify(const r1cs_example<libff::Fr<ppT> > &example,
-                        const bool test_serialization, string name, string n);
+                        const bool test_serialization, string name);
 
 } // libsnark
+
+template<typename ppT>
+void get_parameters(string name);
 
 #include <libsnark/zk_proof_systems/ppzksnark/voting/run_r1cs_gg_ppzksnark.tcc>
 

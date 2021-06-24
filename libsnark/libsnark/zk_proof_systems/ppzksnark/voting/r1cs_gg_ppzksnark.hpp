@@ -31,6 +31,11 @@ References:
  EUROCRYPT 2016,
  <https://eprint.iacr.org/2016/260>
 
+\[BoweGM17]:
+ "Scalable Multi-party Computation for zk-SNARK Parameters in the Random Beacon Model"
+ Sean Bowe and Ariel Gabizon and Ian Miers,
+ IACR Cryptology ePrint Archive 2017,
+ <http://eprint.iacr.org/2017/1050>
 
 *****************************************************************************
 * @author     This file is part of libsnark, developed by SCIPR Lab
@@ -110,12 +115,14 @@ public:
 
     size_t G1_size() const
     {
-        return 1 + A_query.size() + B_query.domain_size() + H_query.size() + L_query.size();
+        // 1 (alpha_g1) + 1 (beta_g1) + 1 (delta_g1) + A_query + B_query + H_query + L_query
+        return 1 + 1 + 1 + A_query.size() + B_query.domain_size() + H_query.size() + L_query.size();
     }
 
     size_t G2_size() const
     {
-        return 1 + B_query.domain_size();
+        // 1 (beta_g2) + 1 (delta_g2) + B_query
+        return 1 + 1 + B_query.domain_size();
     }
 
     size_t G1_sparse_size() const
@@ -167,26 +174,26 @@ std::istream& operator>>(std::istream &in, r1cs_gg_ppzksnark_verification_key<pp
 template<typename ppT>
 class r1cs_gg_ppzksnark_verification_key {
 public:
-    libff::GT<ppT> alpha_g1_beta_g2;
-    libff::G2<ppT> gamma_g2;
+    libff::G1<ppT> alpha_g1;
+    libff::G2<ppT> beta_g2;
     libff::G2<ppT> delta_g2;
 
-    accumulation_vector<libff::G1<ppT> > gamma_ABC_g1;
+    accumulation_vector<libff::G1<ppT> > ABC_g1;
 
     r1cs_gg_ppzksnark_verification_key() = default;
-    r1cs_gg_ppzksnark_verification_key(const libff::GT<ppT> &alpha_g1_beta_g2,
-                                       const libff::G2<ppT> &gamma_g2,
+    r1cs_gg_ppzksnark_verification_key(const libff::G1<ppT> &alpha_g1,
+                                       const libff::G2<ppT> &beta_g2,
                                        const libff::G2<ppT> &delta_g2,
-                                       const accumulation_vector<libff::G1<ppT> > &gamma_ABC_g1) :
-        alpha_g1_beta_g2(alpha_g1_beta_g2),
-        gamma_g2(gamma_g2),
+                                       const accumulation_vector<libff::G1<ppT> > &ABC_g1) :
+        alpha_g1(alpha_g1),
+        beta_g2(beta_g2),
         delta_g2(delta_g2),
-        gamma_ABC_g1(gamma_ABC_g1)
+        ABC_g1(ABC_g1)
     {};
 
     size_t G1_size() const
     {
-        return gamma_ABC_g1.size();
+        return ABC_g1.size() + 1;
     }
 
     size_t G2_size() const
@@ -194,22 +201,16 @@ public:
         return 2;
     }
 
-    size_t GT_size() const
-    {
-        return 1;
-    }
-
     size_t size_in_bits() const
     {
-        // TODO: include GT size
-        return (gamma_ABC_g1.size_in_bits() + 2 * libff::G2<ppT>::size_in_bits());
+
+        return (ABC_g1.size_in_bits() + 2 * libff::G2<ppT>::size_in_bits() + libff::G1<ppT>::size_in_bits());
     }
 
     void print_size() const
     {
         libff::print_indent(); printf("* G1 elements in VK: %zu\n", this->G1_size());
         libff::print_indent(); printf("* G2 elements in VK: %zu\n", this->G2_size());
-        libff::print_indent(); printf("* GT elements in VK: %zu\n", this->GT_size());
         libff::print_indent(); printf("* VK size in bits: %zu\n", this->size_in_bits());
     }
 
@@ -242,11 +243,12 @@ std::istream& operator>>(std::istream &in, r1cs_gg_ppzksnark_processed_verificat
 template<typename ppT>
 class r1cs_gg_ppzksnark_processed_verification_key {
 public:
-    libff::GT<ppT> vk_alpha_g1_beta_g2;
-    libff::G2_precomp<ppT> vk_gamma_g2_precomp;
+    libff::G1_precomp<ppT> vk_alpha_g1_precomp;
+    libff::G2_precomp<ppT> vk_beta_g2_precomp;
+    libff::G2_precomp<ppT> vk_generator_g2_precomp;
     libff::G2_precomp<ppT> vk_delta_g2_precomp;
 
-    accumulation_vector<libff::G1<ppT> > gamma_ABC_g1;
+    accumulation_vector<libff::G1<ppT> > ABC_g1;
 
     bool operator==(const r1cs_gg_ppzksnark_processed_verification_key &other) const;
     friend std::ostream& operator<< <ppT>(std::ostream &out, const r1cs_gg_ppzksnark_processed_verification_key<ppT> &pvk);

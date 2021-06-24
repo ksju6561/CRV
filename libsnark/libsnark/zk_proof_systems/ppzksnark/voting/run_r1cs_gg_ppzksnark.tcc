@@ -66,6 +66,7 @@ template<typename ppT>
 void run_r1cs_gg_ppzksnark_setup(const r1cs_example<libff::Fr<ppT> > &example,
                         const bool test_serialization, string name)
 {
+    
     libff::enter_block("Call to run_r1cs_gg_ppzksnark setup");
 
     libff::print_header("R1CS GG-ppzkSNARK Generator");
@@ -80,13 +81,12 @@ void run_r1cs_gg_ppzksnark_setup(const r1cs_example<libff::Fr<ppT> > &example,
         libff::leave_block("Test serialization of keys");
     }
     libff::print_header("GG-ppzkSNARK CRS Out file");
-    string name1, name2;
+    string name1, name2, name3;
     name1 = "./datafiles/" + name + "_CRS_pk.dat";
     name2 = "./datafiles/" + name + "_CRS_vk.dat";
-    //name1 = strcat(name1, "_CRS_pk.dat");
-    std::ofstream crs_pk_outfile(name1);
+
     
-    //name2 = strcat(name2, "_CRS_vk.dat");
+    std::ofstream crs_pk_outfile(name1);
     std::ofstream crs_vk_outfile(name2);
     
     crs_pk_outfile << keypair.pk;
@@ -99,7 +99,7 @@ void run_r1cs_gg_ppzksnark_setup(const r1cs_example<libff::Fr<ppT> > &example,
 
 template<typename ppT>
 void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
-                        const bool test_serialization, string name, string n)
+                        const bool test_serialization, string name)
 {
     libff::enter_block("Call to run_r1cs_gg_ppzksnark");
     libff::print_header("GG-ppzkSNARK CRS In file");
@@ -108,9 +108,9 @@ void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
     name1 = "./datafiles/" + name + "_CRS_pk.dat";
     name2 = "./datafiles/" + name + "_CRS_vk.dat";
     
-    std::ifstream crs_pk_infile(name1);
+    std::ifstream crs_pk_infile(name1, std::ifstream::in);
     
-    std::ifstream crs_vk_infile(name2);
+    std::ifstream crs_vk_infile(name2, std::ifstream::in);
     // std::ifstream SF_PK_infile("SF_PK.dat");
     // std::ifstream SF_VK_infile("SF_VK.dat"); 
     // std::ifstream SF_CT_infile(file_name);
@@ -134,7 +134,7 @@ void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
     libff::print_header("proof out");
     // name3 = name + "_Proof.dat";
     // name3 = name + "_proof_" + n + ".dat";
-    name3 = "./datafiles/" + name + "_Proof_" + n + ".dat";
+    name3 = "./datafiles/" + name + "_Proof" + ".dat";
     std::ofstream proof_outfile(name3.c_str());
    
     proof_outfile << proof;
@@ -144,32 +144,23 @@ void run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example,
 
 template<typename ppT>
 bool run_r1cs_gg_ppzksnark_verify(const r1cs_example<libff::Fr<ppT> > &example,
-                        const bool test_serialization, string name, string n)
+                        const bool test_serialization, string name)
 {
     libff::enter_block("Call to run_r1cs_gg_ppzksnark verify");
     libff::print_header("GG-ppzkSNARK CRS In file");
     r1cs_gg_ppzksnark_keypair<ppT> keypair;
-    string name1, name2, name3;
-    name1 = "./datafiles/" + name + "_CRS_pk.dat";
-    name2 = "./datafiles/" + name + "_CRS_vk.dat";    
-    // name3 = name + "_Proof.dat";
-    // name3 = name + "_proof_" + n + ".dat";
-    name3 = "./datafiles/" +  name + "_Proof_" + n + ".dat";
-    std::ifstream crs_pk_infile(name1);
-    //strcat(name2, "_CRS_vk.dat");
-    std::ifstream crs_vk_infile(name2);
-    //strcat(name3, "_Proof.dat");
-    std::ifstream proof_infile(name3.c_str());
-    // std::ifstream SF_PK_infile("SF_PK.dat");
-    // std::ifstream SF_VK_infile("SF_VK.dat"); 
-    // std::ifstream SF_CT_infile(file_name);
-    crs_pk_infile >> keypair.pk; crs_pk_infile.close();
-    crs_vk_infile >> keypair.vk; crs_vk_infile.close();
-    // SF_PK_infile >> SF_key.pk; SF_PK_infile.close();
-    // SF_CT_infile >> SF_ct; SF_CT_infile.close();
     r1cs_gg_ppzksnark_proof<ppT> proof;
-    proof_infile >> proof;
-    proof_infile.close();
+    string name1, name2, name3;
+   
+    name3 = "./datafiles/" +  name + "_Proof" + ".dat";
+    std::ifstream proof_infile(name3);
+    proof_infile >> proof; proof_infile.close();
+
+    name2 = "./datafiles/" + name + "_CRS_vk.dat";    
+    std::ifstream crs_vk_infile(name2);
+    crs_vk_infile >> keypair.vk; crs_vk_infile.close();
+    
+    
     libff::print_header("Preprocess verification key");
     r1cs_gg_ppzksnark_processed_verification_key<ppT> pvk = r1cs_gg_ppzksnark_verifier_process_vk<ppT>(keypair.vk);
 
@@ -189,6 +180,61 @@ bool run_r1cs_gg_ppzksnark_verify(const r1cs_example<libff::Fr<ppT> > &example,
     libff::leave_block("Call to run_r1cs_gg_ppzksnark verify");
 
     return ans;
+}
+
+template<typename ppT>
+void get_parameters(string name){
+    r1cs_gg_ppzksnark_verification_key<ppT> vk;
+    r1cs_gg_ppzksnark_proof<ppT> proof;
+    r1cs_gg_ppzksnark_proving_key<ppT> pk;
+    string name1, name2, name3;
+
+    name1 = "./datafiles/" + name + "_CRS_pk.dat";    
+    std::ifstream crs_pk_infile(name1);
+    crs_pk_infile >> pk; crs_pk_infile.close(); 
+
+    name3 = "./datafiles/" +  name + "_Proof" + ".dat";
+    std::ifstream proof_infile(name3);
+    proof_infile >> proof; proof_infile.close();
+
+    name2 = "./datafiles/" + name + "_CRS_vk.dat";    
+    std::ifstream crs_vk_infile(name2);
+    crs_vk_infile >> vk; crs_vk_infile.close();
+    // name3 = name + "_Proof.dat";
+    // name3 = name + "_proof_" + n + ".dat";
+    std::cout << "vk" << std::endl;
+
+    std::cout << "alpha_g1" << endl;
+    vk.alpha_g1.print();
+    // std::cout << "beta_g2" << endl;
+    // vk.beta_g2.print();
+
+    // std::cout << "neg_beta_g2" << endl;
+    libff::G2<ppT> neg_beta_g2 = vk.beta_g2;
+    neg_beta_g2 = -neg_beta_g2;
+    neg_beta_g2.print();
+    
+    // std::cout << "delta_g2" << endl;
+    // vk.delta_g2.print();
+
+    // std::cout << "neg_delta_g2" << endl;
+    libff::G2<ppT> neg_delta_g2 = vk.delta_g2;
+    neg_delta_g2 = -neg_delta_g2;
+    neg_delta_g2.print();
+
+    // std::cout << "gamma_ABC_g1" << endl;
+    // std::cout << "first" ;
+    vk.ABC_g1.first.print();
+    for(size_t i = 0 ; i < vk.ABC_g1.size()+1; i++){
+        // std::cout << i << " ";
+        vk.ABC_g1.rest[i].print();
+    }
+    vk.print_size();
+
+    std::cout << "proof" << std::endl;
+    proof.g_A.print();
+    proof.g_B.print();
+    proof.g_C.print();  
 }
 
 } // libsnark
