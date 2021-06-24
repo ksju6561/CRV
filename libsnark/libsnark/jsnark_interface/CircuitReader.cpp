@@ -32,7 +32,7 @@ void CircuitReader::parseAndEval(char* arithFilepath, char* inputsFilepath) {
 	ifstream arithfs(arithFilepath, ifstream::in);
 	ifstream inputfs(inputsFilepath, ifstream::in);
 	string line;
-
+	
 	if (!arithfs.good()) {
 		printf("Unable to open circuit file %s \n", arithFilepath);
 		exit(-1);

@@ -14,14 +14,15 @@
 #include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
 
 int main(int argc, char **argv) {
-
+	for(int i = 0 ; i < argc ; i++)
+	printf("%d : %s\n", i, argv[i]);
 	libff::start_profiling();
 	gadgetlib2::initPublicParamsFromDefaultPp();
 	gadgetlib2::GadgetLibAdapter::resetVariableIndex();
 	ProtoboardPtr pb = gadgetlib2::Protoboard::create(gadgetlib2::R1P);
 	
 	int inputStartIndex = 0;
-	if(argc == 6){
+	if(argc == 5){
 		if(strcmp(argv[1], "gg") != 0){
 			cout << "Invalid Argument - Terminating.." << endl;
 			return -1;
@@ -62,6 +63,11 @@ int main(int argc, char **argv) {
 	}
 	cout << endl;
 #endif
+	std::vector<Wire> inputList = reader.getInputWireIds();
+	cout << start << endl;
+	for(int i = 0 ; i < start ; i++){
+		cout << "[INPUT]" << "value" << inputList[i] << "::" << primary_input[i] << endl;
+	}
 
 	//assert(cs.is_valid());
 
@@ -83,7 +89,7 @@ int main(int argc, char **argv) {
 	// cout << name1 << endl;
 	// cout << "voterno : " << argv[4] << endl;
 	string name = name1;
-	// cout << name << endl;
+	cout << name << endl;
 	if(strcmp(argv[3], "setup") == 0)
 	{
 		libsnark::run_r1cs_gg_ppzksnark_setup<libsnark::default_r1cs_gg_ppzksnark_pp>(example, test_serialization, name);
@@ -92,16 +98,16 @@ int main(int argc, char **argv) {
 	}
 	else if(strcmp(argv[3], "verify") == 0)
 	{
-		if(argc == 5) {
+		if(argc == 4) {
 		
-		successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libff::default_ec_pp>(example, test_serialization, name, argv[4]);
+		successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libff::default_ec_pp>(example, test_serialization, name);
 
 		} else {
 			// The following code makes use of the observation that 
 			// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
 			// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
 			successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libsnark::default_r1cs_gg_ppzksnark_pp>(
-				example, test_serialization, name, argv[4]);
+				example, test_serialization, name);
 		}
 
 		if(!successBit){
@@ -112,47 +118,41 @@ int main(int argc, char **argv) {
 	}
 	else if (strcmp(argv[3], "run") == 0)
 	{
-		if(argc == 5) {
+		if(argc == 4) {
 			
-			libsnark::run_r1cs_gg_ppzksnark<libff::default_ec_pp>(example, test_serialization, name, argv[4]);
+			libsnark::run_r1cs_gg_ppzksnark<libff::default_ec_pp>(example, test_serialization, name);
 
 		} else {
 			// The following code makes use of the observation that 
 			// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
 			// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
 			libsnark::run_r1cs_gg_ppzksnark<libsnark::default_r1cs_gg_ppzksnark_pp>(
-				example, test_serialization, name, argv[4]);
+				example, test_serialization, name);
 		}
 
-	
-	return 0;
+		return 0;
 	}
+	
 	else if(strcmp(argv[3], "all") == 0)
 	{
 		libsnark::run_r1cs_gg_ppzksnark_setup<libsnark::default_r1cs_gg_ppzksnark_pp>(example, test_serialization, name);
 		
-		if(argc == 5) {
+		if(argc == 4) {
 			
-			libsnark::run_r1cs_gg_ppzksnark<libff::default_ec_pp>(example, test_serialization, name, argv[4]);
+			libsnark::run_r1cs_gg_ppzksnark<libff::default_ec_pp>(example, test_serialization, name);
+			successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libff::default_ec_pp>(example, test_serialization, name);
+			libsnark::get_parameters<libff::default_ec_pp>(name);
 
 		} else {
 			// The following code makes use of the observation that 
 			// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
 			// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
 			libsnark::run_r1cs_gg_ppzksnark<libsnark::default_r1cs_gg_ppzksnark_pp>(
-				example, test_serialization, name, argv[4]);
-		}
-
-		if(argc == 5) {
-		
-		successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libff::default_ec_pp>(example, test_serialization, name, argv[4]);
-
-		} else {
-			// The following code makes use of the observation that 
-			// libsnark::default_r1cs_gg_ppzksnark_pp is the same as libff::default_ec_pp (see r1cs_gg_ppzksnark_pp.hpp)
-			// otherwise, the following code won't work properly, as GadgetLib2 is hardcoded to use libff::default_ec_pp.
+				example, test_serialization, name);
 			successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libsnark::default_r1cs_gg_ppzksnark_pp>(
-				example, test_serialization, name, argv[4]);
+				example, test_serialization, name);
+			libsnark::get_parameters<libsnark::default_r1cs_gg_ppzksnark_pp>(name);
+
 		}
 
 		if(!successBit){
@@ -161,5 +161,15 @@ int main(int argc, char **argv) {
 		}
 		
 	}
+
+	else if(strcmp(argv[3], "param") == 0){
+		if ( argc == 4){
+		libsnark::get_parameters<libff::default_ec_pp>(name);
+		}
+		else{
+			libsnark::get_parameters<libsnark::default_r1cs_gg_ppzksnark_pp>(name);
+		}
+	}
+	return 0;
 }
 
