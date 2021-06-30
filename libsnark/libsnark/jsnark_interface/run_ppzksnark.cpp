@@ -32,6 +32,8 @@ int main(int argc, char **argv) {
 		inputStartIndex = 1;	
 	} 	
 
+	
+
 	// Read the circuit, evaluate, and translate constraints
 	CircuitReader reader(argv[1 + inputStartIndex], argv[2 + inputStartIndex], pb);
 	r1cs_constraint_system<FieldT> cs = get_constraint_system_from_gadgetlib2(
@@ -50,54 +52,81 @@ int main(int argc, char **argv) {
 
 	// only print the circuit output values if both flags MONTGOMERY and BINARY outputs are off (see CMakeLists file)
 	// In the default case, these flags should be ON for faster performance.
+	#if defined(MONTGOMERY_OUTPUT)
+	cout <<"montgomery output on" << endl;
+	#endif
+	#if defined(BINARY_OUTPUT)
+	cout << "output binary on " << endl;
+	#endif
 
-#if !defined(MONTGOMERY_OUTPUT) && !defined(OUTPUT_BINARY)
+	char *name1;
+	name1 = strtok(argv[1], ".");
+	cout << argv[3] << endl;
+	name1[strlen(name1)] = '\0';
+	string name = name1;
+	cout << name << endl;
+	string filename;
+    filename = "./datafiles/" + name + "_inouts.dat";
+    std::ofstream inoutfile(filename);
+
+
 	cout << endl << "Printing output assignment in readable format:: " << endl;
 	std::vector<Wire> outputList = reader.getOutputWireIds();
 	int start = reader.getNumInputs();
 	int end = reader.getNumInputs() +reader.getNumOutputs();	
+	cout << "numinputs" << start << endl << "numoutputs" << end-start << endl;
+
+	std::vector<Wire> inputList = reader.getInputWireIds();
+	int start2 = reader.getNumInputs();
+	cout << start2 << endl;
+	for(int i = 0 ; i < start2 ; i++){
+		// string tmp 
+		cout << "[INPUT]" << "value" << inputList[i] << "::";
+		primary_input[i].print();
+
+		inoutfile << primary_input[i] << OUTPUT_NEWLINE;
+	}
+
 	for (int i = start ; i < end; i++) {
 		cout << "[output]" << " Value of Wire # " << outputList[i-reader.getNumInputs()] << " :: ";
-		cout << primary_input[i];
-		cout << endl;
+		primary_input[i].print();
+		inoutfile << primary_input[i] << OUTPUT_NEWLINE;
 	}
-	cout << endl;
-#endif
-	std::vector<Wire> inputList = reader.getInputWireIds();
-	cout << start << endl;
-	for(int i = 0 ; i < start ; i++){
-		cout << "[INPUT]" << "value" << inputList[i] << "::" << primary_input[i] << endl;
-	}
+
+    inoutfile.close();
 
 	//assert(cs.is_valid());
 
 	// removed cs.is_valid() check due to a suspected (off by 1) issue in a newly added check in their method.
         // A follow-up will be added.
-	if(!cs.is_satisfied(primary_input, auxiliary_input)){
-		cout << "The constraint system is  not satisifed by the value assignment - Terminating." << endl;
-		return -1;
-	}
+	
 	r1cs_example<FieldT> example(cs, primary_input, auxiliary_input);
 	const bool test_serialization = false;
 	bool successBit = false;
 	//string name = argv[2];
-	char *name1;
-	// strncpy(name1, argv[2], strlen(argv[2])-3);
-	name1 = strtok(argv[2], ".");
-	cout << argv[3] << endl;
-	name1[strlen(name1)] = '\0';
-	// cout << name1 << endl;
-	// cout << "voterno : " << argv[4] << endl;
-	string name = name1;
-	cout << name << endl;
+	
 	if(strcmp(argv[3], "setup") == 0)
 	{
+		if(!cs.is_satisfied(primary_input, auxiliary_input)){
+		cout << "The constraint system is  not satisifed by the value assignment - Terminating." << endl;
+		return -1;
+		}
 		libsnark::run_r1cs_gg_ppzksnark_setup<libsnark::default_r1cs_gg_ppzksnark_pp>(example, test_serialization, name);
 
 		return 0;
 	}
-	else if(strcmp(argv[3], "verify") == 0)
+	else if (strcmp(argv[3], "verify") == 0)
 	{
+		// FILE *fp = fopen(filename);
+		// unsigned char *arr = (char *)malloc(sizeof(char) * size);
+		// fread(arr, sizeof(unsigned char), size, in);
+		// for(int i = 0 ; i < size ; i++){
+			
+		// }
+		// for (int i = 0; i < end; i++)
+		// {
+
+		// }
 		if(argc == 4) {
 		
 		successBit = libsnark::run_r1cs_gg_ppzksnark_verify<libff::default_ec_pp>(example, test_serialization, name);
@@ -118,6 +147,10 @@ int main(int argc, char **argv) {
 	}
 	else if (strcmp(argv[3], "run") == 0)
 	{
+		if(!cs.is_satisfied(primary_input, auxiliary_input)){
+		cout << "The constraint system is  not satisifed by the value assignment - Terminating." << endl;
+		return -1;
+		}
 		if(argc == 4) {
 			
 			libsnark::run_r1cs_gg_ppzksnark<libff::default_ec_pp>(example, test_serialization, name);
