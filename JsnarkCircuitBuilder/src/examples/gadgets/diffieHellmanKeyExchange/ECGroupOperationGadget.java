@@ -68,9 +68,9 @@ public class ECGroupOperationGadget extends Gadget {
 
     private Wire xout;
     private Wire yout;
-
+    private Wire[] outputPubValue;
     /**
-     * This gadget receives two points: Base = (baseX) and H = (hX), and the secret
+     * This gadget receives two points: Base = (pt1_x) and H = (hX), and the secret
      * key Bits and outputs the scalar EC multiplications: secret*Base, secret*H
      * 
      * The secret key bits must be of length SECRET_BITWIDTH and are expected to
@@ -93,10 +93,10 @@ public class ECGroupOperationGadget extends Gadget {
         buildCircuit();
     }
 
-    public ECGroupOperationGadget(Wire baseX, Wire expX, Wire baseY, Wire expY, String... desc) {
+    public ECGroupOperationGadget(Wire pt1_x, Wire exp1, Wire pt2_x, Wire exp2, String... desc) {
         super(desc);
-        ECGroupGeneratorGadget gadget1 = new ECGroupGeneratorGadget(baseX, expX, desc);
-        ECGroupGeneratorGadget gadget2 = new ECGroupGeneratorGadget(baseY, expY, desc);
+        ECGroupGeneratorGadget gadget1 = new ECGroupGeneratorGadget(pt1_x, exp1, desc);
+        ECGroupGeneratorGadget gadget2 = new ECGroupGeneratorGadget(pt2_x, exp2, desc);
         
         this.basePoint = new AffinePoint(gadget1.getOutputWires()[0]);
         this.hPoint = new AffinePoint(gadget2.getOutputWires()[0]);
@@ -104,6 +104,20 @@ public class ECGroupOperationGadget extends Gadget {
         
         buildCircuit();
     }
+
+    public ECGroupOperationGadget(Wire pt1_x, Wire pt1_y, Wire exp1, Wire pt2_x, Wire pt2_y, Wire exp2, String... desc) {
+        super(desc);
+        ECGroupGeneratorGadget gadget1 = new ECGroupGeneratorGadget(pt1_x, pt1_y, exp1, desc);
+        ECGroupGeneratorGadget gadget2 = new ECGroupGeneratorGadget(pt2_x, pt2_y, exp2, desc);
+        
+        Wire[] g1_out = gadget1.getOutputWires();
+        Wire[] g2_out = gadget2.getOutputWires();
+        this.basePoint = new AffinePoint(g1_out[0],g1_out[1]);//, gadget1.getOutputWires()[1]);
+        this.hPoint = new AffinePoint(g2_out[0],g2_out[1]);
+        //computeYCoordinates();        
+        buildCircuit();
+    }
+
 
     protected void buildCircuit() {
 
@@ -114,30 +128,22 @@ public class ECGroupOperationGadget extends Gadget {
          * equations save 1 multiplication gate per bit. (we consider multiplications by
          * constants cheaper in our setting, so they are not counted)
          */
-        Wire samebasepoint = basePoint.x.isEqualTo(hPoint.x);
+        // Wire samebasepoint = basePoint.x.isEqualTo(hPoint.x);
 
         AffinePoint out = addAffinePoints(basePoint, hPoint);
         
-        outputPublicValue = out.x;
+        //outputPublicValue = out.x;
         xout = basePoint.x;
         yout = hPoint.x;
-        // Wire a = basePoint.x;
-        // Wire b = hPoint.x;
-        // outputPublicValue = a.mul(b);
-    
-        
-        // Wire[] a = (basePoint.x).getBitWires(254).asArray();
-        // Wire[] b = (hPoint.x).getBitWires(254).asArray();
-        // Wire[] out = new WireArray(a).xorWireArray(new WireArray(b), SECRET_BITWIDTH).asArray();
-        
-        // outputPublicValue = new WireArray(out).packAsBits(SECRET_BITWIDTH);
-        
+        outputPubValue = new Wire[2];
+        outputPubValue[0] = out.x;
+        outputPubValue[1] = out.y;
     }
 
 
     private void computeYCoordinates() {
 
-        // Easy to handle if baseX is constant, otherwise, let the prover input
+        // Easy to handle if pt1_x is constant, otherwise, let the prover input
         // a witness and verify some properties
 
         if (basePoint.x instanceof ConstantWire) {
@@ -145,7 +151,7 @@ public class ECGroupOperationGadget extends Gadget {
             BigInteger x = ((ConstantWire) basePoint.x).getConstant();
             basePoint.y = generator.createConstantWire(computeYCoordinate(x));
         } else {
-            basePoint.y = generator.createProverWitnessWire();
+            basePoint.y = generator.createProverWitnessWire("basepoint.y");
             generator.specifyProverWitnessComputation(new Instruction() {
                 public void evaluate(CircuitEvaluator evaluator) {
                     BigInteger x = evaluator.getWireValue(basePoint.x);
@@ -159,7 +165,7 @@ public class ECGroupOperationGadget extends Gadget {
             BigInteger x = ((ConstantWire) hPoint.x).getConstant();
             hPoint.y = generator.createConstantWire(computeYCoordinate(x));
         } else {
-            hPoint.y = generator.createProverWitnessWire();
+            hPoint.y = generator.createProverWitnessWire("hpoint.y");
             generator.specifyProverWitnessComputation(new Instruction() {
                 public void evaluate(CircuitEvaluator evaluator) {
                     BigInteger x = evaluator.getWireValue(hPoint.x);
@@ -180,15 +186,7 @@ public class ECGroupOperationGadget extends Gadget {
         generator.addEqualityAssertion(ySqr, xCube.add(xSqr.mul(COEFF_A)).add(x));
     }
 
-    private AffinePoint doubleAffinePoint(AffinePoint p) {
-        Wire x_2 = p.x.mul(p.x);
-        Wire l1 = new FieldDivisionGadget(x_2.mul(3).add(p.x.mul(COEFF_A).mul(2)).add(1), p.y.mul(2))
-                .getOutputWires()[0];
-        Wire l2 = l1.mul(l1);
-        Wire newX = l2.sub(COEFF_A).sub(p.x).sub(p.x);
-        Wire newY = p.x.mul(3).add(COEFF_A).sub(l2).mul(l1).sub(p.y);
-        return new AffinePoint(newX, newY);
-    }
+
 
     private AffinePoint addAffinePoints(AffinePoint p1, AffinePoint p2) {
         Wire diffY = p1.y.sub(p2.y);
@@ -203,7 +201,7 @@ public class ECGroupOperationGadget extends Gadget {
 
     @Override
     public Wire[] getOutputWires() {
-        return new Wire[] { outputPublicValue, xout, yout };
+        return new Wire[] { outputPubValue[0], outputPubValue[1] }; //outputPubValue;//
     }
 
     public static BigInteger computeYCoordinate(BigInteger x) {
