@@ -4,58 +4,43 @@
 package examples.generators;
 
 import java.math.BigInteger;
-import java.util.Arrays;
-
 import util.Util;
 import circuit.eval.CircuitEvaluator;
-import circuit.structure.ConstantWire;
-import circuit.structure.BitWire;
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
-import circuit.structure.WireArray;
-import circuit.config.Config;
-import examples.gadgets.diffieHellmanKeyExchange.ECGroupGeneratorGadget;
-import examples.gadgets.hash.SubsetSumHashGadget;
-import examples.gadgets.hash.MerkleTreePathGadget;
 import examples.gadgets.diffieHellmanKeyExchange.ECGroupOperationGadget;
-
+import examples.gadgets.hash.MerkleTreePathGadget_MiMC7;
+import examples.gadgets.hash.MiMC7Gadget;
 
 public class Vote extends CircuitGenerator {
 	/********************* INPUT ***************************/
-	private Wire G;
-	private Wire U;
-	private Wire[] E_id;
+	private Wire Gx, Gy;
+	private Wire Ux, Uy;
+	private Wire Vx_in, Wx_in;
+	private Wire Vy_in, Wy_in;
+	private Wire E_id;
+	private Wire root_in;
+	private Wire sn_in, pk_in;
 	/********************* OUTPUT ***************************/
-	private Wire[] root;
-	private Wire[] sn;
-	private Wire[][] VCT;
+	Wire root_out;
 	/********************* Witness ***************************/
-	private Wire[] SK_id;
-	private Wire[] EK_id;
+	private Wire Sx, Sy;
+	private Wire Tx, Ty;
+	private Wire sk_id;
 
-	private Wire[] candidate;
-	private Wire Rho; 
+	private Wire msg; 
 	
-
-
 	/********************* Vote Msg and random ***************************/
 	private Wire randomizedEnc;
-	
+	//private int hashDigestDimension = SubsetSumHashGadget.DIMENSION;
+
 	/********************* MerkleTree ***************************/
 	private Wire directionSelector;
 	private Wire[] intermediateHasheWires;
-
-	private int numofelector; // 2^6
-	private int msgsize;
-	private int leafNumOfWords = 8;
-	private int leafWordBitWidth = 32;
 	private int treeHeight;
-	
-	private int hashDigestDimension = SubsetSumHashGadget.DIMENSION;
-	
+	private int numofelector, msgsize;
 
 	public static final int EXPONENT_BITWIDTH = 254; // in bits
-
 	public Vote(String circuitName, int treeHeight, int numofelector) {
 		super(circuitName);
 		this.treeHeight = treeHeight;
@@ -63,105 +48,87 @@ public class Vote extends CircuitGenerator {
 		this.msgsize = (int)( Math.log(numofelector) / Math.log(2) );
 	}
 
-
 	@Override
 	protected void buildCircuit() {	
+		Gx = createInputWire("Gx");	Gy = createInputWire("Gy");
+		Ux = createInputWire("Ux");	Uy = createInputWire("Uy");
+		Vx_in = createInputWire("Vx_in");	Vy_in = createInputWire("Vy_in");
+		Wx_in = createInputWire("Wx_in");	Wy_in = createInputWire("Wy_in");
+		E_id = createInputWire("e");
+		pk_in = createInputWire("pk_in");
+		sn_in = createInputWire("sn_in");
+		root_in = createInputWire("root_in");
+		////////////////////////////////////////////////////////////////////////////////////
 
-		E_id = createInputWireArray(leafNumOfWords, "E_id");
-		EK_id = createProverWitnessWireArray(2, "ek_id");
-		G = createInputWire("G");
-		U = createInputWire("U");
-		
+		sk_id = createProverWitnessWire("sk_id");
+		Sx = createProverWitnessWire("Sx");Sy = createProverWitnessWire("Sy");
+		Tx = createProverWitnessWire("Tx");Ty = createProverWitnessWire("Ty");
+		randomizedEnc = createProverWitnessWire("rand");
+		msg = createProverWitnessWire("msg");
+
 		directionSelector = createProverWitnessWire("Direction selector");
-		candidate = createProverWitnessWireArray(EXPONENT_BITWIDTH, "candidate"); // 후보자
-		SK_id = createProverWitnessWireArray(leafNumOfWords, "sk_id"); // voter private key
-		randomizedEnc = createProverWitnessWire("r");
+		intermediateHasheWires = createProverWitnessWireArray(treeHeight, "Intermediate Hashes");
 
-	
-		Wire msg = new WireArray(candidate).packAsBits(EXPONENT_BITWIDTH);
-		makeOutput(msg, "msg");
+		MiMC7Gadget sn_hash = new MiMC7Gadget(new Wire[] {Sx, Tx, sk_id, E_id});
+		Wire sn_out = sn_hash.getOutputWires()[0];
 
-		Wire[] skBits = new WireArray(SK_id).getBits(leafWordBitWidth).asArray();
+		ECGroupOperationGadget encV = new ECGroupOperationGadget(Gx, Gy, randomizedEnc, Sx, Sy, msg); //하나에 120ms 정도
+		ECGroupOperationGadget encW = new ECGroupOperationGadget(Ux, Uy, randomizedEnc, Tx, Ty, msg);
 
-		SubsetSumHashGadget hash = new SubsetSumHashGadget(skBits, false);
-		Wire[] PK_id = hash.getOutputWires();
-		Wire[] S = Util.split(EK_id[0], 256, 8, 32);
-		Wire[] T = Util.split(EK_id[1], 256, 8, 32);;
-		Wire[] ek = Util.concat(S, T);
-
-		//비트수 맞출것
-		Wire[] sn_input = Util.concat(Util.concat(E_id, SK_id), ek); //sn = H(E_ID||SK_ID||EK_ID)
-		System.out.println(sn_input.length);
-		//32 * 8 + 32 * 8 + 32 * 8 + 32 * 8
-
-		Wire[] snBits = new WireArray(sn_input).getBits(leafWordBitWidth).asArray();
-		hash = new SubsetSumHashGadget(snBits, false);
-		sn = hash.getOutputWires();
-		makeOutputArray(sn, "sn");
+		MiMC7Gadget pk_hash = new MiMC7Gadget(new Wire[] {sk_id});
+		Wire pk_out = pk_hash.getOutputWires()[0];
 		
-		intermediateHasheWires = createProverWitnessWireArray(hashDigestDimension * treeHeight, "Intermediate Hashes");
-		
-		// 32 * 8 + 32 * 8 +  32 * 3
-		Wire[] ekbits = new WireArray(ek).getBits(leafWordBitWidth).asArray();
-		hash = new SubsetSumHashGadget(ekbits, false);
-		Wire[] hashek = hash.getOutputWires();
-		Wire[] ekpk = Util.concat(hashek, PK_id);
-		// System.out.println("WW:"+ekpk.length);
-		MerkleTreePathGadget merkleTreeGadget = new MerkleTreePathGadget(directionSelector, ekpk, intermediateHasheWires, 254, treeHeight);
-		root = merkleTreeGadget.getOutputWires();
-		makeOutputArray(root, "Root");
-		//  2^8  
+		Wire[] V_out = encV.getOutputWires();
+		Wire[] W_out = encW.getOutputWires();
+		Wire[] ekpk = {Sx, Tx, pk_out};
+		MerkleTreePathGadget_MiMC7 merkleTreeGadget = new MerkleTreePathGadget_MiMC7(directionSelector, ekpk, intermediateHasheWires, treeHeight);
+		root_out = merkleTreeGadget.getOutputWires()[0];
+		//makeOutputArray(root, "Root");
 
-		long beforeTime = System.currentTimeMillis();
-		
-		ECGroupOperationGadget encV = new ECGroupOperationGadget(G, randomizedEnc, EK_id[0], msg); //하나에 120ms 정도
-		Wire V = encV.getOutputWires()[0];
-		ECGroupOperationGadget encW = new ECGroupOperationGadget(U, randomizedEnc, EK_id[1], msg);
-		Wire W = encW.getOutputWires()[0];
-
-		long afterTime = System.currentTimeMillis(); 
-		long secDiffTime = (afterTime - beforeTime);
-		System.out.println("시간차이(m) : "+secDiffTime); //250ms
-		
-		makeOutput(V, "V");
-		makeOutput(W, "W");
-
+		addEqualityAssertion(pk_out, pk_in);
+		addEqualityAssertion(sn_out, sn_in);
+		addEqualityAssertion(V_out[0], Vx_in);
+		addEqualityAssertion(V_out[1], Vy_in);
+		addEqualityAssertion(W_out[0], Wx_in);
+		addEqualityAssertion(W_out[1], Wy_in);
+		addEqualityAssertion(root_out, root_in);
 	}
 
 	@Override
 	public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
-		circuitEvaluator.setWireValue(G, new BigInteger("10398164868948269691505217409040279103932722394566360325611713252123766059173"));
-		circuitEvaluator.setWireValue(U, new BigInteger("16661641749539121848487039119493468627472925312533453925108867068010824302961"));
+		circuitEvaluator.setWireValue(Gx, new BigInteger("16fd271ae0ad87ddae03044ac6852ee1d2ac024d42cff099c50ea7510d2a70a5",16));
+		circuitEvaluator.setWireValue(Gy, new BigInteger("291d2a8217f35195cb3f45acde062e1709c7fdc7b1fe623c0a27021ae5446310",16));
+		circuitEvaluator.setWireValue(Ux, new BigInteger("13641eca1827ad0acbee4f0ad1753b2f283b62a5e6f9dc68fb0bbc5af07f366b",16));
+		circuitEvaluator.setWireValue(Uy, new BigInteger("deda3e84e9efac8d6b69d3ca21609770da4c62b83526be735a798b4f4668f48",16));
+		circuitEvaluator.setWireValue(Vx_in, new BigInteger("9ed22a3cc039218ad431f636cfcf1b0421ca72fd5925b5119b32bdf6f06a0a8",16));
+		circuitEvaluator.setWireValue(Vy_in, new BigInteger("2655f79ea87d85712fc303312d504bca37bd60d8a97e19fa3a50592851126713",16));
+		circuitEvaluator.setWireValue(Wx_in, new BigInteger("1df45d7aeea36ee42a69385b0298875b339bd1f0a4026437971cd3dcf86275b6",16));
+		circuitEvaluator.setWireValue(Wy_in, new BigInteger("6185cd8bd96257dd681d3f9d5c6b6e11cb2aa2e835977399290e1964a325310",16));
+		circuitEvaluator.setWireValue(E_id, new BigInteger("1"));
+		circuitEvaluator.setWireValue(pk_in, new BigInteger("242e5dac01ff9bc696a866fbe0cebeb2ef3b836de1f9344f3bd8da5ddcfd1899",16));
+		circuitEvaluator.setWireValue(sn_in, new BigInteger("2b6b60940830f15107ebdae8664cfe792011abb7848548039ecaaaaf1a590dec",16));	
+		circuitEvaluator.setWireValue(root_in, new BigInteger("279d0eb27abfabe7b2ce52d31a7e3ebb9f2a799efb2424667517a56680d3e821",16));
 		
-		circuitEvaluator.setWireValue(EK_id[0], new BigInteger("10477647447175823525193414868166901406319183663425347340811680603194551866117"));
-		circuitEvaluator.setWireValue(EK_id[1], new BigInteger("12666091344144327122936091045967790976610069455379602669774012682010433991521"));
-		
-		for(int i = 0 ; i < leafNumOfWords ; i++){
-			circuitEvaluator.setWireValue(E_id[i], Integer.MAX_VALUE);
-			circuitEvaluator.setWireValue(SK_id[i], Integer.MAX_VALUE);
-		}
-
-		circuitEvaluator.setWireValue(directionSelector, Util.nextRandomBigInteger(treeHeight));
-		BigInteger m = Util.nextRandomBigInteger(BigInteger.valueOf(numofelector));
-		System.out.println(m);
-		m = new BigInteger("1");
-		for(int i = 0 ; i < EXPONENT_BITWIDTH  ; i++)
-			circuitEvaluator.setWireValue(candidate[i], 0);
-		circuitEvaluator.setWireValue(candidate[treeHeight * (m.intValue() + 1) - 1], 1);
-		circuitEvaluator.setWireValue(randomizedEnc, new BigInteger("1231231212312542673123124124879879879817259871293845798123754981237549312324"));
-		for (int i = 0; i < hashDigestDimension * treeHeight; i++) { 
+		circuitEvaluator.setWireValue(sk_id, new BigInteger("111111"));
+		circuitEvaluator.setWireValue(Sx, new BigInteger("1fca64aadf8c72571e0bb07a79cf3f1d97357470e5d7dd51a3bc15f38c7c6e22",16));
+		circuitEvaluator.setWireValue(Sy, new BigInteger("239aa42106195d896bcb735b4a3da49acdf6d83b475566995f26879089f844d4",16));
+		circuitEvaluator.setWireValue(Tx, new BigInteger("c6b29f54614c69fa95672d61dcacc7aa06d5236df49e25a8c7a1a8e0ba92db2",16));
+		circuitEvaluator.setWireValue(Ty, new BigInteger("2ff29f767782f1a68fca486bdb7ed2dd5ef60f78895df259d889c436daf19324",16));
+		circuitEvaluator.setWireValue(randomizedEnc, new BigInteger("2b8da27db352ccf66c6068e708b02c1a6ec60088c6050b5bbbf574c95022944",16));
+		circuitEvaluator.setWireValue(msg, new BigInteger("800000000000", 16));
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+		circuitEvaluator.setWireValue(directionSelector, Util.nextRandomBigInteger(treeHeight));		
+		for (int i = 0; i < treeHeight; i++) { 
 			circuitEvaluator.setWireValue(intermediateHasheWires[i], Integer.MAX_VALUE);
 		}
-		
 	}
 
 	public static void main(String[] args) throws Exception {
-
 		Vote generator = new Vote("Vote", 16, 15); // 16 : 5 10 15
 		generator.generateCircuit();
 		generator.evalCircuit();
 		generator.prepFiles();
 		generator.runLibsnark();
 	}
-
 }
