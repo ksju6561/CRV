@@ -4,43 +4,22 @@
 package examples.generators;
 
 import java.math.BigInteger;
-import java.util.Random;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 
-import util.Util;
-import circuit.config.Config;
 import circuit.eval.CircuitEvaluator;
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
-import circuit.structure.WireArray;
-import examples.gadgets.hash.MerkleTreePathGadget;
-import examples.gadgets.hash.SubsetSumHashGadget;
+import examples.gadgets.hash.MiMC7Gadget;
 
 public class Register extends CircuitGenerator {
 
     /*  input */
-    private Wire[][] PP;
+    private Wire HashOut;
     /* witness */
-    private Wire[] SK_id;
-    /* output */
-    private Wire[] PK_id;
+    private Wire SK_id;
 
     /******************* BigInteger Values  ******************/
-    public BigInteger[] sk_id;
-
-    private int leafNumOfWords = 8;
-    private int leafWordBitWidth = 32;
-    private SubsetSumHashGadget subsetSumHashGadget;
+    public BigInteger sk_id;
+    private MiMC7Gadget MiMC7;
     private int mode = 0 ;
 
     public Register(String circuitName, int mode){
@@ -50,42 +29,32 @@ public class Register extends CircuitGenerator {
 
     @Override
     protected void buildCircuit(){
-		SK_id = createProverWitnessWireArray(leafNumOfWords, "sk_id"); // voter private key
-        Wire[] skBits = new WireArray(SK_id).getBits(leafWordBitWidth).asArray();
-		// System.out.println("ww : " + skBits.length);
-        subsetSumHashGadget = new SubsetSumHashGadget(skBits, false);
-		Wire[] PK_id = subsetSumHashGadget.getOutputWires();
-		makeOutputArray(PK_id, "PK_id");
+        HashOut = createInputWire("hashin");
+		SK_id = createProverWitnessWire("sk_id"); // voter private key
+
+        MiMC7 = new MiMC7Gadget(new Wire[] {SK_id});
+		Wire PK_id = MiMC7.getOutputWires()[0];
+
+        addEqualityAssertion(PK_id, HashOut);
     }
 
     @Override
     public void generateSampleInput(CircuitEvaluator circuitEvaluator) {
         if (mode == 0) {
-            for (int i = 0; i < leafNumOfWords; i++)
-                circuitEvaluator.setWireValue(SK_id[i], Integer.MAX_VALUE);
+            circuitEvaluator.setWireValue(SK_id, new BigInteger("111111",10));
+            circuitEvaluator.setWireValue(HashOut, new BigInteger("242e5dac01ff9bc696a866fbe0cebeb2ef3b836de1f9344f3bd8da5ddcfd1899", 16));
         }
         if (mode == 1) {
-            for (int i = 0; i < leafNumOfWords; i++)
-                circuitEvaluator.setWireValue(SK_id[i], sk_id[i]);
+            circuitEvaluator.setWireValue(SK_id, sk_id);
         }
-    }
-    
-    public void setup()
-    {
-        this.generateCircuit();
-        this.evalCircuit();
-        this.prepFiles();
-        this.runLibsnarksetup(0);
     }
 
     public static void main(String[] arga) throws Exception{
-        Register register = new Register("register", 0);
+        Register register = new Register("Register", 0);
         register.generateCircuit();
         register.evalCircuit();
         register.prepFiles();
-        register.runLibsnarksetup(0);
-        register.runLibsnarkproof(0);
-        register.runLibsnarkVerify(0);
+        register.runLibsnarksetup();
+        register.runLibsnarkproof();
     }
-
 }
